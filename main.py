@@ -92,3 +92,4 @@ if __name__ == "__main__":
     main(args)
     # print("1")
     # print(0)
+    print("ok")
