@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -63,7 +63,9 @@ class CLIP_encoder_decoder(nn.Module):
         # self.train=args.train
         # CLIPMoedel : emb_shape [batch_size,1,512]
         self.processor = CLIPProcessor.from_pretrained(self.args.clip_model_path)
-        self.encoder = CLIPModel.from_pretrained(args.clip_model_path).eval()
+        self.encoder = CLIPModel.from_pretrained(args.clip_model_path)
+        for param in self.encoder.parameters():
+            param.requires_grad = False
         # clip 编码得到的特征(batch_size,512)->(batch_size,512,49)
         self.linear = nn.Linear(1, 49)
 
@@ -79,15 +81,15 @@ class CLIP_encoder_decoder(nn.Module):
         # self.device = args.device
 
     def forward(self, inputs, train=True):
-
-        if train:
-            # inputs=self.processor(text=[""],images=x, return_tensors="pt", padding=True).cuda()
-            feature = self.encoder(**inputs)  # [B,1,512]->[B,49,512] 1*1卷积
-            feature = feature.image_embeds
-        else:
-            # inputs = self.processor(text=x,images=[self.tmp_image],return_tensors="pt", padding=True).cuda()
-            feature = self.encoder(**inputs)
-            feature = feature.text_embeds
+        with torch.no_grad():
+            if train:
+                # inputs=self.processor(text=[""],images=x, return_tensors="pt", padding=True).cuda()
+                feature = self.encoder(**inputs)  # [B,1,512]->[B,49,512] 1*1卷积
+                feature = feature.image_embeds
+            else:
+                # inputs = self.processor(text=x,images=[self.tmp_image],return_tensors="pt", padding=True).cuda()
+                feature = self.encoder(**inputs)
+                feature = feature.text_embeds
         #  (batch_size, 1,512) 转换为 (batch_size * 512, 1)
         reshaped_input = feature.unsqueeze(1).permute(0, 2, 1).contiguous().view(-1, 1)
         center_feature = self.linear(reshaped_input)
