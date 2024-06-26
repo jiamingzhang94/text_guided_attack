@@ -1,7 +1,7 @@
 import json
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -160,6 +160,7 @@ if __name__ == "__main__":
     argparse.add_argument("--shuffle", type=bool, default=True)
     argparse.add_argument("--mode", type=str, default="test")
     argparse.add_argument("--model_path", type=str, default="save_model/model_epoch_20.pth")
+    argparse.add_argument("--epsilon",type=float,default=8)
     args = argparse.parse_args()
     args.device = device
     main(args)
