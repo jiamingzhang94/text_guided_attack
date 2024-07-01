@@ -1,7 +1,5 @@
 #### 数据下载与处理
-点击从下面这个这个链接下载 [coco train2017](http://images.cocodataset.org/zips/train2017.zip)图像数据集
-
-http://images.cocodataset.org/zips/train2017.zip
+从链接中下载 [coco train2017](http://images.cocodataset.org/zips/train2017.zip)图像数据集
 
 下载完成后，MSCOCO数据集一张图像可能对应多个文本描述，因此需要对数据进行处理
 
@@ -19,5 +17,5 @@ http://images.cocodataset.org/zips/train2017.zip
 | 000000318219.jpg  | [A young boy standing in front of a computer keyboard., a little boy wearing headphones and looking at a computer monitor, He is listening intently to the computer at school., A young boy stares up at the computer monitor., a young kid with head phones on using a computer]                              |
 | 000000554625.jpg  | [a boy wearing headphones using one computer in a long row of computers, A little boy with earphones on listening to something., A group of people sitting at desk using computers., Children sitting at computer stations on a long table., A small child wearing headphones plays on the computer.]          |
 
-第一列为图像的名字，第二列为对应图像的多个描述。
+第一列为所下载图像的名字，第二列为对应图像的多个描述。
 
