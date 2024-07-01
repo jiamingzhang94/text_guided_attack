@@ -101,7 +101,7 @@ class CLIP_encoder_decoder(nn.Module):
         deconv_feature3 = self.deconv3(deconv_feature4)
         deconv_feature2 = self.deconv2(deconv_feature3)
         image = self.deconv1(deconv_feature2)
-
+        image=torch.clamp(image, self.args.epsilon / 255., self.args.epsilon / 255)
         # inputs=self.processor(text=[""],images=x, return_tensors="pt", padding=True)
         output_encode = self.encoder(pixel_values=image,
                                      input_ids=torch.tensor([[49406, 49407]]).cuda())  # [B,1,512]->[B,49,512] 1*1卷积
