@@ -4,8 +4,8 @@ import os
 import argparse
 from tqdm import tqdm
 argparse = argparse.ArgumentParser()
-argparse.add_argument("--image_path", type=str, default="/data2/zhiyu/data/coco/images/train2017")
-argparse.add_argument("--data_path", type=str, default="/data2/junhong/proj/text_guide_attack/data/mscoco.parquet")
+argparse.add_argument("--image_path", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/train2017")
+argparse.add_argument("--data_path", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/mscoco.parquet")
 args = argparse.parse_args()
 
 pd.set_option('display.max_columns', 1000)

@@ -19,8 +19,6 @@ import argparse
 from tqdm import tqdm
 from model.clip_unet import CLIP_encoder_decoder
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def filter_state_dict(state_dict, filter_keys):
     return {k: v for k, v in state_dict.items() if not any(key in k for key in filter_keys)}
@@ -36,7 +34,7 @@ def train(model, dataloader, optimizer, processor, epoch):
     for (images, texts) in tqdm(dataloader, desc=f"[{epoch}/{args.epoch}]", position=0):
         optimizer.zero_grad()
         # images=images.to(device)
-        inputs = processor(text=[""], images=images, return_tensors="pt", padding=True).to(device)
+        inputs = processor(text=[""], images=images, return_tensors="pt", padding=True).to(args.device)
         outputs, images_encode, outputs_encode = model(inputs)
 
         # outputs_encode=model.encoder(outputs)
@@ -53,7 +51,7 @@ def train(model, dataloader, optimizer, processor, epoch):
 
 
 #
-def test(model, dataloader, processor):
+def eval(model, dataloader, processor):
     def process_text(texts):
         input_text = []
         for text in texts:
@@ -74,7 +72,7 @@ def test(model, dataloader, processor):
     model.eval()  # 确保模型在评估模式
     with torch.no_grad():  # 关闭梯度计算
         for (images, texts) in tqdm(dataloader, desc="Testing", position=0):
-            inputs = processor(text=process_text(texts), images=images, return_tensors="pt", padding=True).to(device)
+            inputs = processor(text=process_text(texts), images=images, return_tensors="pt", padding=True).to(args.device)
             # outputs ：输出的噪声
             # text_encode:输入的文本编码
             # text_output_encode:噪声的编码
@@ -113,7 +111,7 @@ def main(args):
     model = CLIP_encoder_decoder(args=args)
     processor = CLIPProcessor.from_pretrained(args.clip_model_path)
     # encoder=CLIP_Vision_encoder(args=args)
-    model = model.to(device)
+    model = model.to(args.device)
     # 定义优化器
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 加载数据集
@@ -133,16 +131,16 @@ def main(args):
             # 保存过滤后的模型参数
             torch.save(filtered_state_dict, f"save_model/model_epoch_{epoch + 1}.pth")
             # torch.save(model.state_dict(), f"save_model/model_epoch_{epoch+1}.pth")
-    elif args.mode == "test":
+    elif args.mode == "eval":
         # for epoch in tqdm(range(args.epoch)):
         # model.load_state_dict(torch.load(args.model_path, map_location=device))
         print("="*100)
         print(args.model_path)
         model=load_model(model,args.model_path)
-        test(model=model, dataloader=train_data_loader, processor=processor)
+        eval(model=model, dataloader=train_data_loader, processor=processor)
 
     else:
-        print("train or test")
+        print("train or eval")
 
 
 #
@@ -151,18 +149,18 @@ def main(args):
 if __name__ == "__main__":
     argparse = argparse.ArgumentParser()
     argparse.add_argument("--train", type=str, default=True)
-    argparse.add_argument("--clip_model_path", type=str, default="/data2/ModelWarehouse/clip-vit-base-patch32")
-    argparse.add_argument("--image_path", type=str, default="/data2/zhiyu/data/coco/images/train2017")
+    argparse.add_argument("--clip_model_path", type=str, default="openai/clip-vit-base-patch32")
+    argparse.add_argument("--image_path", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/train2017")
     argparse.add_argument("--data_path", type=str,
-                          default="/data2/junhong/proj/text_guide_attack/data/mscoco_exist.parquet")
+                          default="data/mscoco_exist.parquet")
     argparse.add_argument("--epoch", type=int, default=20)
-    argparse.add_argument("--batch_size", type=int, default=256)
+    argparse.add_argument("--batch_size", type=int, default=2048)
     argparse.add_argument("--shuffle", type=bool, default=True)
-    argparse.add_argument("--mode", type=str, default="test")
+    argparse.add_argument("--mode", type=str, default="train")
     argparse.add_argument("--model_path", type=str, default="save_model/model_epoch_20.pth")
     argparse.add_argument("--epsilon",type=float,default=8)
+    argparse.add_argument("--device",type=int,default=0)
     args = argparse.parse_args()
-    args.device = device
     main(args)
     # print("1")
     # print(0)

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import clip
-from mmpretrain import FeatureExtractor, get_model
+# from mmpretrain import FeatureExtractor, get_model
 from PIL import Image
 import requests
 from transformers import CLIPProcessor, CLIPModel, CLIPVisionModel
@@ -75,8 +75,8 @@ class CLIP_encoder_decoder(nn.Module):
         self.deconv2 = Deconv(64, 32)
         self.deconv1 = Deconv(32, 3)
 
-        self.tmp_image = Image.open("/data2/zhiyu/data/coco/images/val2014/COCO_val2014_000000000042.jpg").convert(
-            'RGB')
+        # self.tmp_image = Image.open("/data2/zhiyu/data/coco/images/val2014/COCO_val2014_000000000042.jpg").convert(
+        #     'RGB')
 
         # self.device = args.device
 
