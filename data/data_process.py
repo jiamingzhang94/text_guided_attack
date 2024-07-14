@@ -15,6 +15,9 @@ data_path = "mscoco.parquet"
 # data=pd.read_table(data_path)
 data = pq.read_table(data_path)
 df = data.to_pandas()
+# for i in df["URL"]:
+#     if "2017" in i:
+#         print(i)
 # print(df.head())
 exist_data = {
     "URL": [],
@@ -32,6 +35,11 @@ for image,text in tqdm(zip(df["file_name"],df["TEXT"])):
         exist_data["TEXT"][index].append(text)
 exist_df = pd.DataFrame(exist_data)
 exist_df.to_parquet("mscoco_exist.parquet", engine='pyarrow')
+
+
+
+
+
 # print(len(exist_data["URL"]))
 # print(df.head())
 
