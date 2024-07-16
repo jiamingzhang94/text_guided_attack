@@ -172,10 +172,10 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=bool, default=True)
-    # parser.add_argument("--tar_dir", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/coco/mscoco")
-    parser.add_argument("--tar_dir", type=str, default="/home/dycpu4_data1/jmzhang/big_datasets/laion-400m/laion400m-data")
+    parser.add_argument("--tar_dir", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/coco/mscoco")
+    # parser.add_argument("--tar_dir", type=str, default="/home/dycpu4_data1/jmzhang/big_datasets/laion-400m/laion400m-data")
     parser.add_argument("--epoch", type=int, default=20)
-    parser.add_argument("--batch_size", type=int, default=512)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--auto_cast", type=bool, default=True)
     parser.add_argument("--device", type=str, default="cuda:0")
     parser.add_argument("--chunk", type=int, default=5)

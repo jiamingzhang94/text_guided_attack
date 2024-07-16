@@ -54,24 +54,25 @@ class CLIPEncoder(nn.Module):
         text_features = self.model.encode_text(text_tokens)
         return text_features
 
+def get_group_norm(num_channels, num_groups=32):
+    if num_channels < num_groups:
+        return nn.GroupNorm(num_groups=num_channels, num_channels=num_channels)
+    return nn.GroupNorm(num_groups=min(num_groups, num_channels), num_channels=num_channels)
 
 class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, groups=channels)
-        self.conv1_1x1 = nn.Conv2d(channels, channels, kernel_size=1)
-        self.bn1 = nn.BatchNorm2d(channels)
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, groups=channels)
-        self.conv2_1x1 = nn.Conv2d(channels, channels, kernel_size=1)
-        self.bn2 = nn.BatchNorm2d(channels)
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.gn1 = get_group_norm(channels)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.gn2 = get_group_norm(channels)
 
     def forward(self, x):
         residual = x
-        x = F.relu(self.bn1(self.conv1_1x1(self.conv1(x))))
-        x = self.bn2(self.conv2_1x1(self.conv2(x)))
-        x += residual
-        return F.relu(x)
-
+        out = F.leaky_relu(self.gn1(self.conv1(x)), negative_slope=0.2)
+        out = self.gn2(self.conv2(out))
+        out += residual
+        return F.leaky_relu(out, negative_slope=0.2)
 
 class EfficientAttention(nn.Module):
     def __init__(self, in_channels, key_channels, head_count, value_channels):
@@ -97,21 +98,9 @@ class EfficientAttention(nn.Module):
 
         attended_values = []
         for i in range(self.head_count):
-            key = F.softmax(keys[
-                            :,
-                            i * head_key_channels: (i + 1) * head_key_channels,
-                            :
-                            ], dim=2)
-            query = F.softmax(queries[
-                              :,
-                              i * head_key_channels: (i + 1) * head_key_channels,
-                              :
-                              ], dim=1)
-            value = values[
-                    :,
-                    i * head_value_channels: (i + 1) * head_value_channels,
-                    :
-                    ]
+            key = F.softmax(keys[:, i * head_key_channels: (i + 1) * head_key_channels, :], dim=2)
+            query = F.softmax(queries[:, i * head_key_channels: (i + 1) * head_key_channels, :], dim=1)
+            value = values[:, i * head_value_channels: (i + 1) * head_value_channels, :]
             context = key @ value.transpose(1, 2)
             attended_value = (context.transpose(1, 2) @ query).reshape(n, head_value_channels, h, w)
             attended_values.append(attended_value)
@@ -123,7 +112,7 @@ class EfficientAttention(nn.Module):
         return attention
 
 class Decoder(nn.Module):
-    def __init__(self, embed_dim=512, latent_dim=64, init_size=7, last_channel=3, num_res_blocks=1):
+    def __init__(self, embed_dim=512, latent_dim=512, init_size=7, last_channel=16, num_res_blocks=3):
         super(Decoder, self).__init__()
 
         self.embed_dim = embed_dim
@@ -132,64 +121,85 @@ class Decoder(nn.Module):
 
         self.embed_proj = nn.Sequential(
             nn.Linear(embed_dim, latent_dim * self.init_size * self.init_size),
-            nn.ReLU(inplace=True)
+            nn.LeakyReLU(0.2, inplace=True)
         )
 
-        self.init_conv = nn.Conv2d(latent_dim, 32, kernel_size=3, padding=1)
+        self.init_conv = nn.Conv2d(latent_dim, 256, kernel_size=3, padding=1)
 
         self.up_blocks = nn.ModuleList([
-            self._make_up_block(32, 32),
+            self._make_up_block(256, 128),
+            self._make_up_block(128, 64),
+            self._make_up_block(64, 32),
             self._make_up_block(32, 16),
-            self._make_up_block(16, 16),
-            self._make_up_block(16, 8),
-            self._make_up_block(8, last_channel),
-            # self._make_up_block(16, 16),
+            self._make_up_block(16, last_channel),
+        ])
+
+        self.skip_projections = nn.ModuleList([
+            nn.Conv2d(256, 128, kernel_size=1),
+            nn.Conv2d(128, 64, kernel_size=1),
+            nn.Conv2d(64, 32, kernel_size=1),
+            nn.Conv2d(32, 16, kernel_size=1),
+            nn.Conv2d(16, last_channel, kernel_size=1),
         ])
 
         self.res_blocks = nn.ModuleList([
-            self._make_res_block(last_channel) for _ in range(num_res_blocks)
+            ResidualBlock(last_channel) for _ in range(num_res_blocks)
         ])
 
         self.efficient_attention = EfficientAttention(
-            in_channels=last_channel,  # 或者你期望的通道数
-            key_channels=32,  # 可以调整
-            head_count=4,  # 可以调整
-            value_channels=32  # 可以调整
+            in_channels=last_channel,
+            key_channels=32,
+            head_count=4,
+            value_channels=32
         )
 
         self.final_conv = nn.Conv2d(last_channel, 3, kernel_size=3, padding=1)
+        self.gn = get_group_norm(last_channel)
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.GroupNorm):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
 
     def _make_up_block(self, in_channels, out_channels):
         return nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            get_group_norm(out_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            ResidualBlock(out_channels)
         )
 
-    def _make_res_block(self, channels):
-        return ResidualBlock(channels)
-
     def forward(self, x):
-        x = x.view(x.size(0), -1)
-        assert x.size(1) == self.embed_dim
-        x = self.embed_proj(x.float())
+        x = self.embed_proj(x.view(x.size(0), -1).float())
         x = x.view(-1, self.latent_dim, self.init_size, self.init_size)
 
         x = self.init_conv(x)
 
-        for up_block in self.up_blocks:
+        features = []
+        for up_block, skip_proj in zip(self.up_blocks, self.skip_projections):
+            features.append(F.interpolate(skip_proj(x), scale_factor=2, mode='nearest'))
             x = up_block(x)
+            if features:
+                x = x + features[-1]  # 添加跳跃连接
 
+        x = self.gn(x)
         x = self.efficient_attention(x)
+        x = self.gn(x)
 
         for res_block in self.res_blocks:
             x = res_block(x)
 
         x = self.final_conv(x)
         x = torch.tanh(x)
-        x = x*0.5 + 0.5
+        x = x * 0.5 + 0.5
 
         return x
-
-
-
