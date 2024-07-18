@@ -17,6 +17,8 @@ from models.ae_official import CLIPEncoder, Decoder
 from torch.utils.tensorboard import SummaryWriter
 import torch.profiler
 
+from eval_ls import *
+
 
 class BatchContrastiveLoss(nn.Module):
     def __init__(self, margin=0.5, temperature=0.07):
@@ -169,18 +171,29 @@ def main(args):
     writer.close()
 
 
+def eval(args):
+    evaluator = EvaluatorCOCO(batch_size=args.batch_size,
+                              model_name='ViT-B/32',
+                              coco_root='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',
+                              ann_file='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/captions_val2014.json',
+                              device=args.device)
+    evaluator.eval()
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=bool, default=True)
     parser.add_argument("--tar_dir", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/coco/mscoco")
     # parser.add_argument("--tar_dir", type=str, default="/home/dycpu4_data1/jmzhang/big_datasets/laion-400m/laion400m-data")
     parser.add_argument("--epoch", type=int, default=20)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=2048)
     parser.add_argument("--auto_cast", type=bool, default=True)
-    parser.add_argument("--device", type=str, default="cuda:0")
+    parser.add_argument("--device", type=str, default="cuda:5")
     parser.add_argument("--chunk", type=int, default=5)
     parser.add_argument("--eps", type=float, default=8/255)
     args = parser.parse_args()
 
-    main(args)
-    print("ok")
+    # main(args)
+    eval(args)
+

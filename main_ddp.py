@@ -12,7 +12,8 @@ import webdataset as wds
 import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from models.ae_official import CLIPEncoder, Decoder
+from models.ae_official import CLIPEncoder
+from models.decoder_gpt4o import Decoder
 from torch.utils.tensorboard import SummaryWriter
 import torch.profiler
 from collections import deque
@@ -92,7 +93,6 @@ def get_lr(epoch, warmup_epochs=1):
 
 
 
-
 def enumerate_report(seq, delta, growth=1.0):
     last = 0
     count = 0
@@ -150,7 +150,10 @@ def main_worker(args):
     for param in clip_encoder.parameters():
         param.requires_grad = False
 
-    optimizer = optim.AdamW(decoder.parameters(), lr=1e-3)
+    # optimizer = optim.Lamb(decoder.parameters(),
+    #                        lr=1e-4,
+    #                        betas=(0.9, 0.999))
+    optimizer = torch.optim.AdamW(decoder.parameters(), 3e-4)
     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5000, T_mult=1)
     scaler = GradScaler()
     writer = SummaryWriter(log_dir='./runs') if args.local_rank == 0 else None
@@ -248,7 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--dist_url", type=str, default="tcp://127.0.0.1:23456")
     parser.add_argument("--chunk", type=int, default=5)
-    parser.add_argument("--eps", type=float, default=8 / 255)
+    parser.add_argument("--eps", type=float, default=16 / 255)
     parser.add_argument("--checkpoint", type=str, default=None, help="path to checkpoint to load")
     args = parser.parse_args()
 
