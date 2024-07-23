@@ -12,7 +12,8 @@ import webdataset as wds
 import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from models.ae_official import CLIPEncoder, Decoder
+from models.ae_official import CLIPEncoder
+from models.decoder_gpt4o import Decoder
 from torch.utils.tensorboard import SummaryWriter
 import torch.profiler
 from collections import deque
@@ -44,20 +45,52 @@ class BatchContrastiveLoss(nn.Module):
         return loss
 
 
-class InfoNCELoss(nn.Module):
-    def __init__(self, temperature=0.07):
+# class InfoNCELoss(nn.Module):
+#     def __init__(self, temperature=0.07):
+#         super().__init__()
+#         self.temperature = temperature
+#
+#     def forward(self, embeddings1, embeddings2):
+#         embeddings1 = F.normalize(embeddings1, p=2, dim=1)
+#         embeddings2 = F.normalize(embeddings2, p=2, dim=1)
+#
+#         similarity_matrix = torch.matmul(embeddings1, embeddings2.T) / self.temperature
+#         labels = torch.arange(similarity_matrix.shape[0], device=similarity_matrix.device)
+#         loss = F.cross_entropy(similarity_matrix, labels)
+#
+#         return loss
+
+class DynamicInfoNCELoss(nn.Module):
+    def __init__(self, initial_temp=1, final_temp=0.07, epochs=10):
         super().__init__()
-        self.temperature = temperature
+        self.initial_temp = initial_temp
+        self.final_temp = final_temp
+        self.epochs = epochs
+        self.current_temp = initial_temp
 
     def forward(self, embeddings1, embeddings2):
         embeddings1 = F.normalize(embeddings1, p=2, dim=1)
         embeddings2 = F.normalize(embeddings2, p=2, dim=1)
 
-        similarity_matrix = torch.matmul(embeddings1, embeddings2.T) / self.temperature
+        similarity_matrix = torch.matmul(embeddings1, embeddings2.T) / self.current_temp
         labels = torch.arange(similarity_matrix.shape[0], device=similarity_matrix.device)
         loss = F.cross_entropy(similarity_matrix, labels)
-
         return loss
+
+    def update_temperature(self, epoch):
+        if epoch < self.epochs:
+            self.current_temp = self.initial_temp - (self.initial_temp - self.final_temp) * (epoch / self.epochs)
+        else:
+            self.current_temp = self.final_temp
+
+
+def get_lr(epoch, warmup_epochs=1):
+    if epoch < warmup_epochs:
+        current_lr = lr * (epoch + 1) / warmup_epochs
+        # for param_group in optimizer.param_groups:
+        #     param_group['lr'] = current_lr
+        return lr * (epoch + 1) / warmup_epochs
+
 
 
 def enumerate_report(seq, delta, growth=1.0):
@@ -78,6 +111,7 @@ def make_dataloader(tar_dir, batch_size, world_size, rank):
     transform = transforms.Compose([
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(degrees=15),
         transforms.ToTensor(),
     ])
 
@@ -87,15 +121,18 @@ def make_dataloader(tar_dir, batch_size, world_size, rank):
 
     tar_files = glob.glob(os.path.join(tar_dir, "*.tar"))
     dataset = (wds.WebDataset(tar_files, resampled=True, shardshuffle=True)
-               .shuffle(1000)
+               .shuffle(5000)
                .decode("pil")
                .to_tuple("jpg", "txt")
                .map(handle_sample)
                .batched(batch_size)
-               .with_epoch(len(tar_files)))
+               .with_epoch(len(tar_files))
+               # .prepare(5)
+               # .cache(size=5000)
+               )
 
     loader = wds.WebLoader(dataset, batch_size=None, num_workers=16, pin_memory=True)
-    loader = loader.unbatched().shuffle(1000).batched(batch_size)
+    # loader = loader.unbatched().shuffle(1000).batched(batch_size)
     return loader
 
 
@@ -107,17 +144,20 @@ def main_worker(args):
     clip_encoder = CLIPEncoder('ViT-B/32').to(args.local_rank)
     decoder = Decoder(embed_dim=512).to(args.local_rank)
 
-    clip_encoder = DistributedDataParallel(clip_encoder, device_ids=[args.local_rank], find_unused_parameters=True)
-    decoder = DistributedDataParallel(decoder, device_ids=[args.local_rank], find_unused_parameters=True)
+    clip_encoder = DistributedDataParallel(clip_encoder, device_ids=[args.local_rank])
+    decoder = DistributedDataParallel(decoder, device_ids=[args.local_rank])
 
     for param in clip_encoder.parameters():
         param.requires_grad = False
 
-    optimizer = optim.AdamW(decoder.parameters(), lr=1e-4)
-    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=20000, T_mult=2)
+    # optimizer = optim.Lamb(decoder.parameters(),
+    #                        lr=1e-4,
+    #                        betas=(0.9, 0.999))
+    optimizer = torch.optim.AdamW(decoder.parameters(), 3e-4)
+    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5000, T_mult=1)
     scaler = GradScaler()
     writer = SummaryWriter(log_dir='./runs') if args.local_rank == 0 else None
-    criterion = InfoNCELoss()
+    criterion = DynamicInfoNCELoss()
 
     train_loader = make_dataloader(args.tar_dir, args.batch_size, args.world_size, args.local_rank)
 
@@ -132,10 +172,21 @@ def main_worker(args):
             profile_memory=True,
             with_stack=True
     ) as profiler:
-        global_step = 0
-        for epoch in range(args.epoch):
+        if args.checkpoint:
+            checkpoint = torch.load(args.checkpoint, map_location=f'cuda:{args.local_rank}')
+            decoder.module.load_state_dict(checkpoint['decoder_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            global_step = checkpoint.get('global_step', 0)
+            start_epoch = checkpoint.get('epoch', 0) + 1
+        else:
+            global_step = 0
+            start_epoch = 0
+        for epoch in range(start_epoch, args.epoch):
+
             total_loss = 0
             count = 0
+            criterion.update_temperature(epoch)
             for batch_idx, (images, text) in enumerate(train_loader):
                 images = images.to(args.local_rank)
                 optimizer.zero_grad()
@@ -166,13 +217,20 @@ def main_worker(args):
                 scheduler.step()
                 profiler.step()
 
-                if batch_idx % 500 == 0 and args.local_rank == 0:
+                if batch_idx % 100 == 0 and args.local_rank == 0:
                     avg_loss = total_loss / count
-                    print(f'Batch {batch_idx}, Loss: {total_loss / count:.4f}')
+                    current_lr = optimizer.param_groups[0]['lr']
+                    print(f'Batch {batch_idx}, Loss: {total_loss / count:.4f}, lr: {current_lr}')
+                    torch.save({
+                        'global_step': global_step,
+                        'decoder_state_dict': decoder.module.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'scheduler_state_dict': scheduler.state_dict(),
+                    }, f"checkpoints/model_current.pt")
                     writer.add_scalar('Loss/train', avg_loss, global_step)
 
             avg_loss = total_loss / count
-            print(f"Training Loss: {avg_loss}")
+            print(f"Epoch: {epoch}, Training Loss: {avg_loss}")
             if args.local_rank == 0:
                 writer.add_scalar('Loss/epoch', avg_loss, epoch)
                 torch.save({
@@ -188,12 +246,13 @@ def main_worker(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tar_dir", type=str, required=True)
+    parser.add_argument("--tar_dir", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/coco/mscoco")
     parser.add_argument("--epoch", type=int, default=20)
-    parser.add_argument("--batch_size", type=int, default=600)
+    parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--dist_url", type=str, default="tcp://127.0.0.1:23456")
     parser.add_argument("--chunk", type=int, default=5)
-    parser.add_argument("--eps", type=float, default=8 / 255)
+    parser.add_argument("--eps", type=float, default=16 / 255)
+    parser.add_argument("--checkpoint", type=str, default=None, help="path to checkpoint to load")
     args = parser.parse_args()
 
     ngpus_per_node = torch.cuda.device_count()
