@@ -21,6 +21,18 @@ datasets:
           name: "blip_caption"
         eval:
           name: "blip_caption"
+    build_info:
+      # Be careful not to append minus sign (-) before split to avoid itemizing
+      annotations:
+        train:
+          storage: new_coco/coco/annotation/coco_karpathy_train.json
+        val:
+          storage: new_coco/coco/annotation/coco_karpathy_val.json
+        test:
+          storage: new_coco/coco/annotation/coco_karpathy_test.json
+      images:
+#        这里可以改为自定义的图像路径
+        storage: /new_data/yifei2/junhong/dataset/new_coco/coco/images
 
 run:
   task: retrieval
@@ -43,6 +55,7 @@ run:
 
   # model specific
   k_test: 256
+#  k_test: 10
 
   # misc
   seed: 42
