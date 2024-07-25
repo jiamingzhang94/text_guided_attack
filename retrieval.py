@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-# 设定下载的模型和预训练模型的缓存路径
+# 设定下载模型和预训练模型的缓存路径
 os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 import argparse
 import random
