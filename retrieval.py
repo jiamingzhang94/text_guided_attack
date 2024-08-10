@@ -1,4 +1,5 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 import argparse
 import random
 
@@ -28,8 +29,11 @@ from lavis.common.registry import registry
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="lavis_tool/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="lavis_tool/blip/ret_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
+    parser.add_argument("--data_path", default="/new_data/yifei2/junhong/dataset/coco/transfer_10000_5_caption.json", help="test data path")
+    parser.add_argument("--image_path",help="path to image dataset")
+    parser.add_argument("--output_dir",help="path where to save result")
     parser.add_argument(
         "--options",
         nargs="+",
@@ -67,7 +71,12 @@ def main():
     job_id = now()
 
     cfg = Config(args)
-
+    if args.image_path:
+        cfg.config['datasets']['coco_retrieval']['build_info']['images']=args.image_path
+    if args.output_dir:
+        cfg.config['run']['output_dir'] = args.output_dir
+    if args.data_path:
+        cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test']['storage'] = args.data_path
     init_distributed_mode(cfg.run_cfg)
 
     setup_seeds(cfg)
