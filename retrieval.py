@@ -1,6 +1,6 @@
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-# os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 import argparse
 import random
 
@@ -30,11 +30,11 @@ from lavis.common.registry import registry
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="lavis_tool/blip/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="lavis_tool/clip/ret_flickr_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
     parser.add_argument("--data_path", help="test data path")
-    parser.add_argument("--image_path",help="path to image dataset")
-    # parser.add_argument("--image_path",default="/new_data/yifei2/junhong/dataset/new_coco/coco/images",help="path to image dataset")
+    # parser.add_argument("--image_path",help="path to image dataset")
+    parser.add_argument("--image_path",default="/new_data/yifei2/junhong/dataset/flickr30k",help="path to image dataset")
     parser.add_argument("--output_dir",help="path where to save result")
     parser.add_argument(
         "--options",
@@ -74,11 +74,25 @@ def main():
 
     cfg = Config(args)
     if args.image_path:
-        cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage']=args.image_path
+
+        if "flickr" in args.cfg_path:
+            cfg.config['datasets']['flickr30k']['build_info']['images']['storage']=args.image_path
+        # elif "coco" in args.cfg_path:
+        #     cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage'] = args.image_path
+        else:
+            cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage'] = args.image_path
     if args.output_dir:
         cfg.config['run']['output_dir'] = args.output_dir
     if args.data_path:
-        cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test']['storage'] = args.data_path
+
+        if "flickr" in args.cfg_path:
+            cfg.config['datasets']['flickr30k']['build_info']['annotations']['test']['storage'] = args.data_path
+        # elif "coco" in args.cfg_path:
+        #     cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
+        #         'storage'] = args.data_path
+        else:
+            cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
+                'storage'] = args.data_path
     init_distributed_mode(cfg.run_cfg)
 
     setup_seeds(cfg)
