@@ -2,7 +2,7 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="img2dataset" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.8.13 (sftp://yifei@10.126.56.21:22/new_data/yifei2/anaconda3/envs/lavis/bin/python) (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

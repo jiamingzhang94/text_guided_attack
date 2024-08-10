@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="junhong@10.126.56.106:22 password (2)" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="yifei@10.126.56.21:22 password (4)" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
     <option name="confirmBeforeUploading" value="false" />
     <serverData>
       <paths name="junhong@10.126.56.106:22 password">
@@ -56,6 +56,20 @@
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yifei@10.126.56.21:22 password (3)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yifei@10.126.56.21:22 password (4)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/new_data/yifei2/junhong/text_guide_attack" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

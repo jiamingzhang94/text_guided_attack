@@ -5,7 +5,7 @@ import argparse
 from tqdm import tqdm
 argparse = argparse.ArgumentParser()
 argparse.add_argument("--image_path", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/train2017")
-argparse.add_argument("--data_path", type=str, default="/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/mscoco.parquet")
+argparse.add_argument("--data_path", type=str, default="/new_data/yifei2/junhong/text_guide_attack/data/mscoco.parquet")
 args = argparse.parse_args()
 
 pd.set_option('display.max_columns', 1000)
@@ -15,6 +15,8 @@ data_path = "mscoco.parquet"
 # data=pd.read_table(data_path)
 data = pq.read_table(data_path)
 df = data.to_pandas()
+df.to_csv("mscoco.csv",index=False)
+print(df)
 # for i in df["URL"]:
 #     if "2017" in i:
 #         print(i)
@@ -23,7 +25,7 @@ exist_data = {
     "URL": [],
     "TEXT": []
 }
-listdir=os.listdir(args.image_path)
+# listdir=os.listdir(args.image_path)
 # print(len(listdir))
 df["file_name"]=df["URL"].str.split('/').str[-1]
 for image,text in tqdm(zip(df["file_name"],df["TEXT"])):
