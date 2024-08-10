@@ -7,9 +7,11 @@ export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
 #数据集路径
 DATA=/home/dycpu6_8tssd1/jmzhang/datasets/
 
-datasets=("coco" "flickr30k")
+#datasets=("coco" "flickr30k")
+datasets=("coco")
 targets=("clip" "blip" "albef")
-image_path=("/YOUR/COCO/PATH","YOUR/FLICKER/PATH")
+#image_path=("/YOUR/COCO/PATH","YOUR/FLICKER/PATH")
+image_path=("/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/")
 
 # 使用索引变量i来遍历两个数组
 for t in "${targets[@]}"; do

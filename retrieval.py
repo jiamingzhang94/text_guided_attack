@@ -30,11 +30,13 @@ from lavis.common.registry import registry
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="lavis_tool/blip/ret_coco_eval.yaml", help="path to configuration file.")
-    parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
+    parser.add_argument("--cfg_path", default="lavis_tool/clip/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cache_path", default="/home/dycpu6_8tssd1/jmzhang/datasets", help="path to dataset cache")
     parser.add_argument("--data_path", help="test data path")
-    parser.add_argument("--image_path",help="path to image dataset")
-    parser.add_argument("--output_dir",help="path where to save result")
+    parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco/',
+                        help="path to image dataset")
+    parser.add_argument("--output_dir", default='outputs',
+                        help="path where to save result")
     parser.add_argument(
         "--options",
         nargs="+",
