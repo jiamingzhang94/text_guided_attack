@@ -1,8 +1,4 @@
 import os
-
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-# 设定下载模型和预训练模型的缓存路径
-os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 import argparse
 import random
 
@@ -32,7 +28,7 @@ from lavis.common.registry import registry
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg-path", default="lavis_tool/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="lavis_tool/ret_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
     parser.add_argument(
         "--options",
