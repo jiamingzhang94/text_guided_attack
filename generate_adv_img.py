@@ -134,10 +134,6 @@ if __name__ == '__main__':
             else:
                 adv_tensor = torch.cat((adv_tensor, adv_image), dim=0)
 
-            # # 计算图像相似度
-            # target_tensor_norm = target_image / target_image.norm(dim=1, keepdim=True)
-            # adv_tensor_norm = adv_image / adv_image.norm(dim=1, keepdim=True)
-            # sim_img = torch.mean(torch.sum(adv_tensor_norm * target_tensor_norm, dim=1))
             # 计算对抗图像的clip embedding的相似度
             adv_emb=clip_model.encode_image(adv_image)
             sim_emb = cosine_similarity(img_emb,adv_emb,dim=1).mean()
