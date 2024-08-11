@@ -1,5 +1,5 @@
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"]='1'
+os.environ["CUDA_VISIBLE_DEVICES"]='1'
 import torch.nn as nn
 from PIL import Image
 from torch.utils.data import Dataset
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                         default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images")
     parser.add_argument("--batch_size", type=int, default=40)
     parser.add_argument("--output_path", type=str,
-                        default="/new_data/yifei2/junhong/text_guide_attack/saved_result/our_image/vit_b_32")
+                        default="/new_data/yifei2/junhong/text_guide_attack/saved_result/our_image/vit_b_32_temp")
     args = parser.parse_args()
 
     # model
@@ -115,6 +115,7 @@ if __name__ == '__main__':
         std=[1.0 / 0.26862954, 1.0 / 0.26130258, 1.0 / 0.27577711])
     adv_tensor = []
     img_id = 0
+    adv_data=[]
 
     for idx, ((clean_image, _, path), (target_image, text)) in enumerate(zip(data_loader_imagenet, data_loader_target)):
         clean_image = clean_image.to(device)
@@ -148,7 +149,15 @@ if __name__ == '__main__':
             os.makedirs(adv_image_path)
         for i in range(adv_image.shape[0]):
             torchvision.utils.save_image(adv_image[i], os.path.join(adv_image_path, f"{img_id:05d}.") + 'png')
+            adv_data.append(
+                {
+                    'image': f"{img_id:05d}.png",
+                    'caption':[text[i]]
+                }
+            )
             img_id += 1
 
     pt_path = args.output_path + "/adv_images.pt"
     torch.save(adv_tensor, pt_path)
+    with open(args.output_path + "/adv_images.json", "w",encoding='utf-8')as f:
+        json.dump(adv_data,f,indent=4,ensure_ascii=False)
