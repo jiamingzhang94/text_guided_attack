@@ -10,6 +10,7 @@ import torchvision
 from models import clip
 import json
 from torch.nn.functional import cosine_similarity
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -51,11 +52,11 @@ class ImageTextDataset(Dataset):
             # 应用转换
             if self.transform:
                 image = self.transform(image)
-            text = sample['text']
+            text = sample['caption'][0]
             return image, text
         else:
             image = sample['image']
-            text = sample['text']
+            text = sample['caption'][0]
             return image, text
 
 
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--eps", type=float, default=8 / 255)
-    parser.add_argument("--model_name", type=str, default="ViT-B/16")
+    parser.add_argument("--model_name", type=str, default="ViT-B/32")
     parser.add_argument("--decoder_path", type=str,
                         default="/new_data/yifei2/junhong/text_guide_attack/saved_result/saved_model/model_current.pt")
     parser.add_argument("--projection_path", type=str, default="")
@@ -80,11 +81,12 @@ if __name__ == '__main__':
     parser.add_argument("--clean_image_path", type=str,
                         default="/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K")
     parser.add_argument("--target_caption", type=str,
-                        default="/new_data/yifei2/junhong/text_guide_attack/data/caption_5000.json")
-    parser.add_argument("--target_image_path", type=str, default="/new_data/yifei2/junhong/dataset/COCO-2017/train2017")
+                        default="/new_data/yifei2/junhong/dataset/ms_coco/coco/annotation/coco_karpathy_val.json")
+    parser.add_argument("--target_image_path", type=str,
+                        default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images")
     parser.add_argument("--batch_size", type=int, default=40)
     parser.add_argument("--output_path", type=str,
-                        default="/new_data/yifei2/junhong/text_guide_attack/saved_result/our_image/vit_b_16")
+                        default="/new_data/yifei2/junhong/text_guide_attack/saved_result/our_image/vit_b_32")
     args = parser.parse_args()
 
     # model
@@ -135,8 +137,8 @@ if __name__ == '__main__':
                 adv_tensor = torch.cat((adv_tensor, adv_image), dim=0)
 
             # 计算对抗图像的clip embedding的相似度
-            adv_emb=clip_model.encode_image(adv_image)
-            sim_emb = cosine_similarity(img_emb,adv_emb,dim=1).mean()
+            adv_emb = clip_model.encode_image(adv_image)
+            sim_emb = cosine_similarity(img_emb, adv_emb, dim=1).mean()
             print(f"iter {idx}/{5000 // args.batch_size} clip_emb_similarity={sim_emb.item():.5f}")
 
         # save images
