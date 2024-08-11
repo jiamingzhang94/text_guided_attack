@@ -1,4 +1,5 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"]='1'
 import torch.nn as nn
 from PIL import Image
 from torch.utils.data import Dataset
@@ -66,6 +67,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--eps", type=float, default=8 / 255)
     parser.add_argument("--model_name", type=str, default="ViT-B/16")
+    parser.add_argument("--decoder_path", type=str, default="/new_data/yifei2/junhong/text_guide_attack/saved_result/saved_model/model_current.pt")
+    parser.add_argument("--projection_path", type=str,default="")
     parser.add_argument("--image_only", type=bool, default=True)
     parser.add_argument("--clean_image_path", type=str,
                         default="/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K")
@@ -73,14 +76,17 @@ if __name__ == '__main__':
                         default="/new_data/yifei2/junhong/text_guide_attack/data/caption_5000.json")
     parser.add_argument("--target_image_path", type=str, default="/new_data/yifei2/junhong/dataset/COCO-2017/train2017")
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--output_path", type=str, default="/new_data/yife")
+    parser.add_argument("--output_path", type=str, default="/new_data/yifei2/junhong/text_guide_attack/saved_result/vit_b_16")
     args = parser.parse_args()
 
     # model
     print(f"Loading CLIP models: {args.model_name}...")
-    clip_model, preprocess = clip.load(args.model_name, device=device, jit=False,
-                                       download_root="/new_data/yifei2/junhong/AttackVLM-main/model/clip")
-    decoder = Decoder(embed_dim=512)
+    # clip_model, preprocess = clip.load(args.model_name, device=device, jit=False,
+    #                                    download_root="/new_data/yifei2/junhong/AttackVLM-main/model/clip")
+    print(f"Loading Decoder: {args.decoder_path.split('/')[-1]}...")
+    decoder = Decoder(embed_dim=512).to(device)
+    decoder.load_state_dict(torch.load(args.decoder_path, map_location='cpu')["decoder_state_dict"])
+    print(f"Loading Projection: {args.projection.split('/')[-1]}...")
     projection = Projection()
     print("Done")
 
@@ -114,6 +120,9 @@ if __name__ == '__main__':
             tmp_adv_image=adv_image.unsqueeze(0)
             adv_tensor= torch.stack((adv_tensor,tmp_adv_image),dim=0)
 
+        # save images
+        if not os.path.exists(args.output_path):
+            os.makedirs(args.output_path)
         for i in range(adv_image.shape[0]):
-            torchvision.utils.save_image(adv_image[i], os.path.join(args.output, f"{idx:05d}.") + 'png')
+            torchvision.utils.save_image(adv_image[i], os.path.join(args.output_path, f"{idx:05d}.") + 'png')
     torch.save(args.output, adv_tensor)
