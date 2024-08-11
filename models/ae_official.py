@@ -8,7 +8,7 @@ import models.clip as clip
 
 
 class CLIPEncoder(nn.Module):
-    def __init__(self, model="ViT-B/32"):
+    def __init__(self, model="ViT-B/32", device="cuda:0"):
         """
         CLIP Image Encoder using the official CLIP implementation.
 
@@ -20,6 +20,7 @@ class CLIPEncoder(nn.Module):
         super(CLIPEncoder, self).__init__()
         self.model, _ = clip.load(model)
         self.model.eval()  # Set the model to evaluation mode
+        self.device = device
 
     def encode_img(self, images):
         """
@@ -50,7 +51,7 @@ class CLIPEncoder(nn.Module):
         Returns:
             torch.Tensor: Text embeddings with shape (batch_size, 512).
         """
-        text_tokens = clip.tokenize(texts).to(next(self.model.parameters()).device)
+        text_tokens = clip.tokenize(texts, truncate=True).to(self.device)
         text_features = self.model.encode_text(text_tokens)
         return text_features
 
