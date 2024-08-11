@@ -1,17 +1,17 @@
 #!/bin/bash
 
 export CUDA_VISIBLE_DEVICES=4
-export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
-#export TORCH_HOME=/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache
+#export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
+export TORCH_HOME=/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache
 # custom config
 
 #数据集路径
-DATA=/home/dycpu6_8tssd1/jmzhang/datasets/
-#DATA=/new_data/yifei2/junhong/dataset
+#DATA=/home/dycpu6_8tssd1/jmzhang/datasets/
+DATA=/new_data/yifei2/junhong/dataset
 
-datasets=("coco" "flickr")
+datasets=("flickr")
 targets=("clip" "blip" "albef")
-image_path=("/YOUR/COCO/images" "/YOUR/flickr/images")
+image_paths=("/new_data/yifei2/junhong/dataset/flickr30k")
 #image_paths=("/new_data/yifei2/junhong/dataset/new_coco/coco/images" "/new_data/yifei2/junhong/dataset/flickr30k/flickr30k-images")
 
 # 使用索引变量 i 遍历两个数组
