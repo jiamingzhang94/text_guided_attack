@@ -75,11 +75,25 @@ def main():
 
     cfg = Config(args)
     if args.image_path:
-        cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage']=args.image_path
+
+        if "flickr" in args.cfg_path:
+            cfg.config['datasets']['flickr30k']['build_info']['images']['storage']=args.image_path
+        # elif "coco" in args.cfg_path:
+        #     cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage'] = args.image_path
+        else:
+            cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage'] = args.image_path
     if args.output_dir:
         cfg.config['run']['output_dir'] = args.output_dir
     if args.data_path:
-        cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test']['storage'] = args.data_path
+
+        if "flickr" in args.cfg_path:
+            cfg.config['datasets']['flickr30k']['build_info']['annotations']['test']['storage'] = args.data_path
+        # elif "coco" in args.cfg_path:
+        #     cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
+        #         'storage'] = args.data_path
+        else:
+            cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
+                'storage'] = args.data_path
     init_distributed_mode(cfg.run_cfg)
 
     setup_seeds(cfg)
