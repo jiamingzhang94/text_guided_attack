@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=5
 export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
 #export TORCH_HOME=/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache
 # custom config
@@ -9,21 +9,29 @@ export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
 DATA=/home/dycpu6_8tssd1/jmzhang/datasets/
 #DATA=/new_data/yifei2/junhong/dataset
 
-datasets=("coco" "flickr")
-targets=("clip" "blip" "albef")
-image_path=("/YOUR/COCO/images" "/YOUR/flickr/images")
+#datasets=("coco" "flickr")
+datasets=("coco")
+#targets=("clip" "blip" "albef")
+targets=("albef")
+image_paths=("/home/dycpu6_8tssd1/jmzhang/datasets/mscoco"
+"/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images")
+json_paths=("/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/json/coco_karpathy_val_0.json"
+"/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images.json")
 #image_paths=("/new_data/yifei2/junhong/dataset/new_coco/coco/images" "/new_data/yifei2/junhong/dataset/flickr30k/flickr30k-images")
 
 # 使用索引变量 i 遍历两个数组
 for t in "${targets[@]}"; do
     for i in "${!datasets[@]}"; do
         d=${datasets[$i]}
+        json_path=${json_paths[$i]}
         image_path=${image_paths[$i]}
         echo "Dataset: ${d}, Image Path: ${image_path}"
-        python ../retrieval.py \
+        python retrieval.py \
             --cache_path ${DATA} \
-            --cfg_path ../lavis_tool/${t}/ret_${d}_eval.yaml \
-            --image_path ${image_path}
+            --cfg_path lavis_tool/${t}/ret_${d}_eval.yaml \
+            --image_path ${image_path} \
+            --json_path ${json_path}
+        echo "-------------------------------"
     done
 done
 

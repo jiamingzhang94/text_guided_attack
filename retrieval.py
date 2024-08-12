@@ -1,6 +1,5 @@
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-# os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '6'
 import argparse
 import random
 
@@ -30,11 +29,16 @@ from lavis.common.registry import registry
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="lavis_tool/clip/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="lavis_tool/albef/ret_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/home/dycpu6_8tssd1/jmzhang/datasets", help="path to dataset cache")
-    parser.add_argument("--data_path", help="test data path")
+    # parser.add_argument("--json_path", default='/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images.json', help="test data path")
+    # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images',
+    #                     help="path to image dataset")
+
+    parser.add_argument("--json_path", default='/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/json/coco_karpathy_val_0.json', help="test data path")
     parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',
                         help="path to image dataset")
+
     # parser.add_argument("--image_path",default="/new_data/yifei2/junhong/dataset/new_coco/coco/images",help="path to image dataset")
     parser.add_argument("--output_dir",help="path where to save result")
     parser.add_argument(
@@ -84,16 +88,16 @@ def main():
             cfg.config['datasets']['coco_retrieval']['build_info']['images']['storage'] = args.image_path
     if args.output_dir:
         cfg.config['run']['output_dir'] = args.output_dir
-    if args.data_path:
+    if args.json_path:
 
         if "flickr" in args.cfg_path:
-            cfg.config['datasets']['flickr30k']['build_info']['annotations']['test']['storage'] = args.data_path
+            cfg.config['datasets']['flickr30k']['build_info']['annotations']['test']['storage'] = args.json_path
         # elif "coco" in args.cfg_path:
         #     cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
-        #         'storage'] = args.data_path
+        #         'storage'] = args.json_path
         else:
             cfg.config['datasets']['coco_retrieval']['build_info']['annotations']['test'][
-                'storage'] = args.data_path
+                'storage'] = args.json_path
     init_distributed_mode(cfg.run_cfg)
 
     setup_seeds(cfg)
