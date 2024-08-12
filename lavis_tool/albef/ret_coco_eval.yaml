@@ -27,9 +27,9 @@ run:
   task: retrieval
 
   # dataloading
-  num_workers: 4
-  batch_size_train: 32
-  batch_size_eval: 64
+  num_workers: 8
+  batch_size_train: 300
+  batch_size_eval: 300
 
   test_splits: ["test"]
 

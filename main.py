@@ -11,8 +11,8 @@ import webdataset as wds
 import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR, CosineAnnealingLR, CosineAnnealingWarmRestarts
-from models.ae_official import CLIPEncoder, Decoder
-# from models.decoder_gpt4o import *
+from models.ae_official import CLIPEncoder
+from models.decoder_gpt4o import *
 
 from torch.utils.tensorboard import SummaryWriter
 import torch.profiler

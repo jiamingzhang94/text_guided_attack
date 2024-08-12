@@ -62,20 +62,58 @@ def compute_cosine_similarity(image_features, text_features):
     return cosine_similarity
 
 
-class ProjectionNetwork(nn.Module):
-    def __init__(self, dim=512):
-        super(ProjectionNetwork, self).__init__()
-        self.fc1 = nn.Linear(dim, dim)
-        self.fc2 = nn.Linear(dim, dim)
-        self.fc3 = nn.Linear(dim, dim)
-        self.tanh = nn.Tanh()
+# class ProjectionNetwork(nn.Module):
+#     def __init__(self, dim=512):
+#         super(ProjectionNetwork, self).__init__()
+#         self.fc1 = nn.Linear(dim, dim*2)
+#         self.fc2 = nn.Linear(dim*2, dim*4)
+#         self.fc3 = nn.Linear(dim*4, dim*4)
+#         self.fc4 = nn.Linear(dim*4, dim*2)
+#         self.fc5 = nn.Linear(dim*2, dim)
+#         self.tanh = nn.Tanh()
+#
+#     def forward(self, x):
+#         residual = x
+#         x = self.tanh(self.fc1(x))
+#         x = self.tanh(self.fc2(x))
+#         x = self.tanh(self.fc3(x))
+#         x = self.tanh(self.fc4(x))
+#         x = self.fc5(x)
+#         return x + residual
+
+
+class GatedResidualBlock(nn.Module):
+    def __init__(self, dim):
+        super(GatedResidualBlock, self).__init__()
+        self.fc1 = nn.Linear(dim, dim*4)
+        self.fc2 = nn.Linear(dim*4, dim*4)
+        self.fc3 = nn.Linear(dim*4, dim)
+        self.gate = nn.Linear(dim, dim)
+        self.activation = nn.GELU()
 
     def forward(self, x):
         residual = x
-        x = self.tanh(self.fc1(x))
-        x = self.tanh(self.fc2(x))
-        x = self.fc3(x)
-        return x + residual
+        out = self.activation(self.fc1(x))
+        out = self.activation(self.fc2(out))
+        out = self.fc3(out)
+        gate = torch.sigmoid(self.gate(x))
+        out = gate * out + (1 - gate) * residual
+        return out
+
+
+class ProjectionNetwork(nn.Module):
+    def __init__(self, dim=512, num_blocks=8):
+        super(ProjectionNetwork, self).__init__()
+        self.input_proj = nn.Linear(dim, dim)
+        self.blocks = nn.ModuleList([GatedResidualBlock(dim) for _ in range(num_blocks)])
+        self.output_proj = nn.Linear(dim, dim)
+
+    def forward(self, x):
+        x = self.input_proj(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.output_proj(x)
+        return x
 
 
 def train_one_epoch(args, train_data_loader, optimizer, clip_encoder, projection_network, criterion, scheduler, epoch):
@@ -131,14 +169,14 @@ def eval_one_epoch(args, val_data_loader, clip_encoder, projection_network, crit
         captions = batch['captions']
         caption_lengths = batch['caption_lengths']
         with torch.no_grad():
-            flattened_captions = [caption for sublist in captions for caption in sublist]
-            expanded_images = []
-            for img, repeat_count in zip(images, caption_lengths):
-                expanded_images.extend([img] * repeat_count)
-            expanded_images = torch.stack(expanded_images)
-            assert len(flattened_captions) == expanded_images.size(0), "Caption 数量与扩展后的图像数量不匹配"
-            image_features = clip_encoder.encode_img(expanded_images)
-            text_features = clip_encoder.encode_text(flattened_captions)
+            # flattened_captions = [caption for sublist in captions for caption in sublist]
+            # expanded_images = []
+            # for img, repeat_count in zip(images, caption_lengths):
+            #     expanded_images.extend([img] * repeat_count)
+            # expanded_images = torch.stack(expanded_images)
+            # assert len(flattened_captions) == expanded_images.size(0), "Caption 数量与扩展后的图像数量不匹配"
+            image_features = clip_encoder.encode_img(images)
+            text_features = clip_encoder.encode_text([sublist[0] for sublist in captions])
 
             image_features = image_features.float()
             text_features = text_features.float()
@@ -151,7 +189,7 @@ def eval_one_epoch(args, val_data_loader, clip_encoder, projection_network, crit
             projected_similarity = compute_cosine_similarity(image_features, projected_features)
             total_original_similarity += original_similarity.sum().item()
             total_projected_similarity += projected_similarity.sum().item()
-        count += len(flattened_captions)
+        count += images.size(0)
 
     avg_loss = total_loss / count
     avg_original_similarity = total_original_similarity / count
@@ -248,7 +286,7 @@ def main():
 
     train_data_loader = DataLoader(train_dataset, batch_size=256, num_workers=8, pin_memory=True, shuffle=True,
                                    collate_fn=train_collate_fn)
-    val_data_loader = DataLoader(val_dataset, batch_size=800, num_workers=8, pin_memory=True, shuffle=False,
+    val_data_loader = DataLoader(val_dataset, batch_size=2500, num_workers=8, pin_memory=True, shuffle=False,
                                  collate_fn=custom_collate)
 
     clip_encoder = CLIPEncoder('ViT-B/32', args.device).to(args.device)
@@ -284,7 +322,7 @@ def main():
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--device", default='cuda:5')
+    parser.add_argument("--device", default='cuda:4')
     parser.add_argument("--num_epoch", default=120, type=int)
     parser.add_argument("--cfg_path", default="lavis_tool/clip/ret_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/home/dycpu6_8tssd1/jmzhang/datasets", help="path to dataset cache")

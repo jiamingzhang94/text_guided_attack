@@ -84,15 +84,6 @@ class DynamicInfoNCELoss(nn.Module):
             self.current_temp = self.final_temp
 
 
-def get_lr(epoch, warmup_epochs=1):
-    if epoch < warmup_epochs:
-        current_lr = lr * (epoch + 1) / warmup_epochs
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = current_lr
-        return lr * (epoch + 1) / warmup_epochs
-
-
-
 def enumerate_report(seq, delta, growth=1.0):
     last = 0
     count = 0
@@ -157,7 +148,8 @@ def main_worker(args):
     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5000, T_mult=1)
     scaler = GradScaler()
     writer = SummaryWriter(log_dir='./runs') if args.local_rank == 0 else None
-    criterion = DynamicInfoNCELoss()
+    # criterion = DynamicInfoNCELoss()
+    criterion = nn.MSELoss()
 
     train_loader = make_dataloader(args.tar_dir, args.batch_size, args.world_size, args.local_rank)
 
@@ -186,7 +178,7 @@ def main_worker(args):
 
             total_loss = 0
             count = 0
-            criterion.update_temperature(epoch)
+            # criterion.update_temperature(epoch)
             for batch_idx, (images, text) in enumerate(train_loader):
                 images = images.to(args.local_rank)
                 optimizer.zero_grad()
@@ -195,16 +187,19 @@ def main_worker(args):
                 with autocast():
                     noise = decoder(e1)
                     noise = torch.clamp(noise, -args.eps, args.eps)
-                    images_adv = []
-                    for _ in range(args.chunk):
-                        images_adv.append(torch.clamp(noise + images[torch.randperm(images.size(0))], 0, 1))
-                    images_adv = torch.cat(images_adv, dim=0)
+                    # images_adv = []
+                    # for _ in range(args.chunk):
+                    #     images_adv.append(torch.clamp(noise + images[torch.randperm(images.size(0))], 0, 1))
+                    # images_adv = torch.cat(images_adv, dim=0)
+
+                    images_adv = torch.clamp(noise + images[torch.randperm(images.size(0))], 0, 1)
+
                     e2 = clip_encoder.module.encode_img(images_adv)
-                    e2_chunks = torch.chunk(e2, args.chunk, dim=0)
-                    sum_tensor = torch.zeros_like(e2_chunks[0])
-                    for chunk in e2_chunks:
-                        sum_tensor += chunk
-                    e2 = sum_tensor / args.chunk
+                    # e2_chunks = torch.chunk(e2, args.chunk, dim=0)
+                    # sum_tensor = torch.zeros_like(e2_chunks[0])
+                    # for chunk in e2_chunks:
+                    #     sum_tensor += chunk
+                    # e2 = sum_tensor / args.chunk
 
                     loss = criterion(e1, e2)
                 scaler.scale(loss).backward()
@@ -220,13 +215,13 @@ def main_worker(args):
                 if batch_idx % 100 == 0 and args.local_rank == 0:
                     avg_loss = total_loss / count
                     current_lr = optimizer.param_groups[0]['lr']
-                    print(f'Batch {batch_idx}, Loss: {total_loss / count:.4f}, lr: {current_lr}')
+                    print(f'Batch {batch_idx}, Loss: {total_loss / count:.5f}, lr: {current_lr}')
                     torch.save({
                         'global_step': global_step,
                         'decoder_state_dict': decoder.module.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'scheduler_state_dict': scheduler.state_dict(),
-                    }, f"checkpoints/model_current.pt")
+                    }, f"checkpoints/model_mse.pt")
                     writer.add_scalar('Loss/train', avg_loss, global_step)
 
             avg_loss = total_loss / count
