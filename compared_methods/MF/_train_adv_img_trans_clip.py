@@ -1,13 +1,22 @@
 import argparse
 import os
+import sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
+# 获取当前文件的上两级目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+
+# 将 models 目录添加到 sys.path
+models_dir = os.path.join(project_root, 'models')
+sys.path.append(models_dir)
 import random
 import clip
 import numpy as np
 import torch
 import torchvision
+import json
 from PIL import Image
 
 from lavis.models import load_model_and_preprocess
@@ -70,11 +79,14 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", default=1.0, type=float)
     parser.add_argument("--epsilon", default=8, type=int)
     parser.add_argument("--steps", default=300, type=int)
-    parser.add_argument("--output", default="/new_data/yifei2/junhong/dataset/clip_transfer_10000", type=str,
+    parser.add_argument("--output", default="/new_data/yifei2/junhong/text_guide_attack/saved_result/MF_ii", type=str,
                         help='the folder name that restore your outputs')
 
-    parser.add_argument("--model_name", default="RN50", type=str)
-    parser.add_argument("--model_type", default="base_coco", type=str)
+    parser.add_argument("--model_name", default="ViT-B/32", type=str)
+    parser.add_argument("--clean_image",type=str, default="/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K")
+    parser.add_argument("--target_image",type=str, default="/new_data/yifei2/junhong/AttackVLM-main/data/stable_generate_image")
+    parser.add_argument("--target_caption", type=str,default="/new_data/yifei2/junhong/dataset/ms_coco/coco/annotation/coco_karpathy_val.json")
+    # parser.add_argument("--model_type", default="base_coco", type=str)
     args = parser.parse_args()
 
     alpha = args.alpha
@@ -89,16 +101,14 @@ if __name__ == "__main__":
     # select and load model
 
     print(f"Loading CLIP models: {args.model_name}...")
-    clip_model, preprocess = clip.load(args.model_name, device=device, jit=False,
-                                       download_root="/new_data/yifei2/junhong/AttackVLM-main/model/clip")
+    clip_model, preprocess = clip.load(args.model_name, device=device, jit=False,download_root="/new_data/yifei2/junhong/AttackVLM-main/model/clip")
     # print("-"*100)
     # print(vis_processors)
     print(f"Done")
 
     # ------------- pre-processing images/text ------------- #
-    imagenet_data = ImageFolderWithPaths("/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K", transform=None)
-    target_data = ImageFolderWithPaths("/new_data/yifei2/junhong/AttackVLM-main/data/stable_generate_image",
-                                       transform=None)
+    imagenet_data = ImageFolderWithPaths(args.clean_image, transform=None)
+    target_data = ImageFolderWithPaths(args.target_image,transform=None)
 
     data_loader_imagenet = torch.utils.data.DataLoader(imagenet_data, batch_size=args.batch_size, shuffle=False,
                                                        num_workers=0, drop_last=False)
@@ -108,6 +118,13 @@ if __name__ == "__main__":
         mean=[-0.48145466 / 0.26862954, -0.4578275 / 0.26130258, -0.40821073 / 0.27577711],
         std=[1.0 / 0.26862954, 1.0 / 0.26130258, 1.0 / 0.27577711])
 
+    img_id=0
+    adv_data = []
+    with open(args.target_caption, 'r',encoding='utf-8') as f:
+        text_data=[]
+        target_json=json.load(f)
+        for i in target_json:
+            text_data.append(i['caption'][0].strip())
     # start attack
     for i, ((image_org, _, path), (image_tgt, _, _)) in enumerate(zip(data_loader_imagenet, data_loader_target)):
         if args.batch_size * (i + 1) > args.num_samples:
@@ -161,9 +178,23 @@ if __name__ == "__main__":
         adv_image = image_org + delta
         adv_image = torch.clamp(inverse_normalize(adv_image), 0.0, 1.0)
 
-        for path_idx in range(len(path)):
-            folder, name = path[path_idx].split("/")[-2], path[path_idx].split("/")[-1]
-            folder_to_save = os.path.join('../_output_img', args.output, folder)
-            if not os.path.exists(folder_to_save):
-                os.makedirs(folder_to_save, exist_ok=True)
-            torchvision.utils.save_image(adv_image[path_idx], os.path.join(folder_to_save, name[:-4]) + 'png')
+        adv_image_path = args.output + "/adv_images"
+        if not os.path.exists(adv_image_path):
+            os.makedirs(adv_image_path)
+        for i in range(adv_image.shape[0]):
+            torchvision.utils.save_image(adv_image[i], os.path.join(adv_image_path, f"{img_id:05d}.") + 'png')
+            adv_data.append(
+                {
+                    'image': f"{img_id:05d}.png",
+                    'caption': [text_data[img_id]]
+                }
+            )
+            img_id += 1
+        # for path_idx in range(len(path)):
+        #     folder, name = path[path_idx].split("/")[-2], path[path_idx].split("/")[-1]
+        #     folder_to_save = os.path.join('../_output_img', args.output, folder)
+        #     if not os.path.exists(folder_to_save):
+        #         os.makedirs(folder_to_save, exist_ok=True)
+        #     torchvision.utils.save_image(adv_image[path_idx], os.path.join(folder_to_save, name[:-4]) + 'png')
+    with open(args.output + "/adv_images.json", "w", encoding='utf-8') as f:
+        json.dump(adv_data, f, indent=4, ensure_ascii=False)
