@@ -11,7 +11,7 @@ CUDA_VISIBLE_DEVICES=4,5 python txt2img_coco.py \
         --ddim_steps 50 \
         --plms \
         --skip_grid \
-        --ckpt /new_data/yifei2/junhong/AttackVLM-main/model/stable/sd-v1-4-full-ema.ckpt \
+        --ckpt sd-v1-4-full-ema.ckpt \
         --from-file 'coco_karpathy_val.json' \
         --outdir '/YOUR/OUTPUT/PATH'
 ```
