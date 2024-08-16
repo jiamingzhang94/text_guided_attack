@@ -27,7 +27,7 @@ CUDA_VISIBLE_DEVICES=0 python _train_adv_img_trans_clip.py  \
     --num_samples 5000 \
     --steps 100 \
     --output '/YOUR/OUTPUT/PATH' \
-    --model_name 'ViT-L/14@336px'  #clip model name
+    --model_name 'ViT-B/32'  #clip model name
     --clean_image 'imagenet-1K'  #path to the targeted images \
     --target_image 'stable_generate_image' #path to the generated images by stable difussion \
     --target_caption 'coco_karpathy_val.json'
