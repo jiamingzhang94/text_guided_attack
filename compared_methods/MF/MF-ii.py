@@ -1,8 +1,8 @@
 import argparse
 import os
 import sys
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
+# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+# os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 
 # 获取当前文件的上两级目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
