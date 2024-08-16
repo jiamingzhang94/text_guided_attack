@@ -22,7 +22,7 @@ Additional implementation details of text-to-image generation by Stable Diffusio
 ### MF-ii
 Note that hyperparameters can be adjusted with your preference
 ```bash
-CUDA_VISIBLE_DEVICES=0 python _train_adv_img_trans_clip.py  \
+CUDA_VISIBLE_DEVICES=0 python MF-ii.py  \
     --batch_size 40 \
     --num_samples 5000 \
     --steps 100 \
@@ -35,4 +35,12 @@ CUDA_VISIBLE_DEVICES=0 python _train_adv_img_trans_clip.py  \
 
 ### MF-it
 ```bash
+CUDA_VISIBLE_DEVICES=0 python MF-it.py  \
+    --batch_size 40 \
+    --num_samples 5000 \
+    --steps 100 \
+    --output '/YOUR/OUTPUT/PATH' \
+    --model_name 'ViT-B/32'  #clip model name
+    --clean_image 'imagenet-1K'  #path to the targeted images \
+    --target_caption 'coco_karpathy_val.json'
 ```
