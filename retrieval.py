@@ -1,7 +1,7 @@
 import os
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-# os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache'
 import argparse
 import random
 import re
@@ -45,7 +45,7 @@ from lavis.processors.randaugment import RandomAugment
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="lavis_tool/clip/ret_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="lavis_tool/blip/ret_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
     parser.add_argument("--data_path", help="test data path")
     # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
@@ -273,8 +273,8 @@ def build(cfg, transform=None):
         text_processors = {'train': registry.get_processor_class('blip_caption').from_config({'name': 'blip_caption'}),
                            'eval': registry.get_processor_class('blip_caption').from_config({'name': 'blip_caption'})}
     else:
-        vis_processors = {'train': BlipImageTrainProcessor(image_size=image_size, tranform=transform),
-                          'eval': BlipImageEvalProcessor(image_size=image_size, tranform=transform)}
+        vis_processors = {'train': BlipImageTrainProcessor(image_size=image_size, transform=transform),
+                          'eval': BlipImageEvalProcessor(image_size=image_size, transform=transform)}
         text_processors = {'train': registry.get_processor_class('blip_caption').from_config({'name': 'blip_caption'}),
                            'eval': registry.get_processor_class('blip_caption').from_config({'name': 'blip_caption'})}
     retrieval_datasets_keys = list(config.keys())
@@ -382,14 +382,14 @@ def main():
 
     # 自定义transform和dataset
     image_size = cfg.config['preprocess']['vis_processor']['eval']['image_size']
-    # transform = transforms.Compose(
-    #     [
-    #         transforms.Resize(image_size, interpolation=InterpolationMode.BICUBIC),
-    #         transforms.CenterCrop(image_size),
-    #         _convert_to_rgb,
-    #         transforms.ToTensor(),
-    #     ]
-    # )
+    transform = transforms.Compose(
+        [
+            transforms.Resize(image_size, interpolation=InterpolationMode.BICUBIC),
+            transforms.CenterCrop(image_size),
+            _convert_to_rgb,
+            transforms.ToTensor(),
+        ]
+    )
     datasets = build(cfg, transform=None)
     # datasets = task.build_datasets(cfg)
 
