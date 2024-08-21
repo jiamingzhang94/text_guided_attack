@@ -85,8 +85,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--model_name", default="ViT-B/32", type=str)
     parser.add_argument("--clean_image", type=str, default="/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K")
-    parser.add_argument("--target_image", type=str,
-                        default="/new_data/yifei2/junhong/AttackVLM-main/data/stable_generate_image")
     parser.add_argument("--target_caption", type=str,
                         default="/new_data/yifei2/junhong/dataset/ms_coco/coco/annotation/coco_karpathy_val.json")
     # parser.add_argument("--model_type", default="base_coco", type=str)
