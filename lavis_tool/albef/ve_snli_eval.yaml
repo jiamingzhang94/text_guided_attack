@@ -1,0 +1,50 @@
+ # Copyright (c) 2022, salesforce.com, inc.
+ # All rights reserved.
+ # SPDX-License-Identifier: BSD-3-Clause
+ # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
+model:
+  arch: albef_classification
+  model_type: ve
+
+datasets:
+  snli_ve: # name of the dataset builder
+    vis_processor:
+        eval:
+          name: "blip_image_eval"
+          image_size: 384
+    text_processor:
+        eval:
+          name: "blip_caption"
+    build_info:
+      annotations:
+        train:
+          url: https://storage.googleapis.com/sfr-xinstructblip-data-research/data/snlive/ve_train.json
+          storage: snli/annotations/ve_train.json
+        val:
+          url: https://storage.googleapis.com/sfr-xinstructblip-data-research/data/snlive/ve_dev.json
+          storage: snli/annotations/ve_dev.json
+        test:
+          url: https://storage.googleapis.com/sfr-xinstructblip-data-research/data/snlive/ve_test.json
+          storage: snli/annotations/ve_test.json
+      images:
+        #        这里可以改为自定义的图像路径
+        storage: /new_data/yifei2/junhong/dataset/flickr30k/flickr30k-images
+run:
+  task: multimodal_classification
+  # optimization-specific
+  batch_size_train: 32
+  batch_size_eval: 64
+  num_workers: 4
+
+  seed: 42
+  output_dir: "output/ALBEF/SNLI_VE"
+
+  evaluate: True
+  test_splits: ["test"]
+
+  # distribution-specific
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
