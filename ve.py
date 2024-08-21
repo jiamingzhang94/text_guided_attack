@@ -42,7 +42,7 @@ def parse_args():
 
     parser.add_argument("--cfg_path", default="lavis_tool/albef/ve_snli_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
-    parser.add_argument("--data_path", help="test data path")
+    parser.add_argument("--data_path",help="test data path")
     # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
     parser.add_argument("--image_path",
                         help="path to image dataset")
@@ -257,6 +257,11 @@ def main():
 
     if args.image_path:
         cfg.config['datasets'][list(cfg.config['datasets'].keys())[0]]['build_info']['images']['storage']= args.image_path
+    if args.output_dir:
+        cfg.config['run']['output_dir'] = args.output_dir
+    if args.data_path:
+        dataset_name=list(cfg.config['datasets'].keys())[0]
+        cfg.config['datasets'][dataset_name]['build_info']['annotations']['test']['storage'] = args.data_path
 
     init_distributed_mode(cfg.run_cfg)
 
