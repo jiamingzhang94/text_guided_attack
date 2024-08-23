@@ -1,4 +1,5 @@
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = '7'
 os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
 import argparse
@@ -8,6 +9,7 @@ import re
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+from PIL import Image
 
 import lavis.tasks as tasks
 from lavis.common.config import Config
@@ -27,7 +29,11 @@ from lavis.runners.runner_base import RunnerBase
 from lavis.tasks import *
 from lavis.common.registry import registry
 
-from lavis.datasets.datasets.snli_ve_datasets import SNLIVisualEntialmentDataset
+# from lavis.datasets.datasets.snli_ve_datasets import SNLIVisualEntialmentDataset
+from lavis.datasets.datasets.multimodal_classification_datasets import (
+    MultimodalClassificationDataset,
+)
+from lavis.datasets.datasets.snli_ve_datasets import __DisplMixin
 from lavis.processors.blip_processors import BlipImageBaseProcessor
 from omegaconf import OmegaConf
 from torchvision import transforms
@@ -37,12 +43,15 @@ import lavis.common.utils as utils
 import warnings
 from lavis.processors.randaugment import RandomAugment
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
     parser.add_argument("--cfg_path", default="lavis_tool/albef/ve_snli_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
-    parser.add_argument("--data_path",help="test data path")
+    parser.add_argument("--data_path",
+                        default='/new_data/yifei2/junhong/dataset/snli/annotations/_ve_test_adv_2000_.json',
+                        help="test data path")
     # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
     parser.add_argument("--image_path",
                         help="path to image dataset")
@@ -60,6 +69,8 @@ def parse_args():
     #     os.environ['LOCAL_RANK'] = str(args.local_rank)
 
     return args
+
+
 class BlipImageTrainProcessor(BlipImageBaseProcessor):
     def __init__(
             self, image_size=384, transform=None, mean=None, std=None, min_scale=0.5, max_scale=1.0
@@ -154,6 +165,38 @@ class BlipImageEvalProcessor(BlipImageBaseProcessor):
 
         return cls(image_size=image_size, mean=mean, std=std)
 
+
+class SNLIVisualEntialmentDataset(MultimodalClassificationDataset, __DisplMixin):
+    def __init__(self, vis_processor, text_processor, vis_root, ann_paths):
+        super().__init__(vis_processor, text_processor, vis_root, ann_paths)
+
+        self.class_labels = self._build_class_labels()
+
+    def _build_class_labels(self):
+        return {"contradiction": 0, "neutral": 1, "entailment": 2}
+
+    def __getitem__(self, index):
+        ann = self.annotation[index]
+
+        image_id = ann["image"]
+        if image_id.endswith(".jpg"):
+            image_path = os.path.join(self.vis_root, image_id)
+        else:
+            image_path = os.path.join(self.vis_root, "%s.jpg" % image_id)
+        image = Image.open(image_path).convert("RGB")
+
+        image = self.vis_processor(image)
+        sentence = self.text_processor(ann["sentence"])
+
+        return {
+            "image": image,
+            "text_input": sentence,
+            "label": self.class_labels[ann["label"]],
+            "image_id": image_id,
+            "instance_id": ann["instance_id"],
+        }
+
+
 def build(cfg, transform=None):
     """
     Create by split datasets inheriting torch.utils.data.Datasets.
@@ -232,6 +275,7 @@ def build(cfg, transform=None):
     datasets_retrieval = {retrieval_datasets_keys[0]: datasets}
     return datasets_retrieval
 
+
 def setup_seeds(config):
     seed = config.run_cfg.seed + get_rank()
 
@@ -256,11 +300,12 @@ def main():
     cfg = Config(args)
 
     if args.image_path:
-        cfg.config['datasets'][list(cfg.config['datasets'].keys())[0]]['build_info']['images']['storage']= args.image_path
+        cfg.config['datasets'][list(cfg.config['datasets'].keys())[0]]['build_info']['images'][
+            'storage'] = args.image_path
     if args.output_dir:
         cfg.config['run']['output_dir'] = args.output_dir
     if args.data_path:
-        dataset_name=list(cfg.config['datasets'].keys())[0]
+        dataset_name = list(cfg.config['datasets'].keys())[0]
         cfg.config['datasets'][dataset_name]['build_info']['annotations']['test']['storage'] = args.data_path
 
     init_distributed_mode(cfg.run_cfg)
@@ -274,16 +319,15 @@ def main():
 
     task = tasks.setup_task(cfg)
 
-
     # 自定义transform和dataset
     try:
         image_size = cfg.config['preprocess']['vis_processor']['eval']['image_size']
     except:
-        image_size=384
+        image_size = 384
     normalize = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
     transform = transforms.Compose(
         [
-            transforms.Resize((image_size,image_size)),
+            transforms.Resize((image_size, image_size)),
             _convert_to_rgb,
             transforms.ToTensor(),
             normalize
@@ -291,7 +335,6 @@ def main():
     )
     datasets = build(cfg, transform=transform)
     # datasets = task.build_datasets(cfg)
-
 
     model = task.build_model(cfg)
 
@@ -304,6 +347,7 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     registry.mapping["paths"]["output_dir"] = output_dir
+    registry.mapping["paths"]["result_dir"] = output_dir
 
     runner.evaluate(skip_reload=True)
 
