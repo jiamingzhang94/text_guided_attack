@@ -7,7 +7,35 @@ import numpy as np
 
 from utils import *
 from mifgsm import MIFGSM
+from torchvision.transforms.functional import resized_crop
 
+class PairedRandomResizedCrop:
+    def __init__(self, img_height, scale=(0.08, 1.0), ratio=(3.0/4.0, 4.0/3.0)):
+        self.img_height = img_height
+        self.scale = scale
+        self.ratio = ratio
+
+    def __call__(self, data):
+        cropped_images = []
+        params_list = []
+
+        # 对前25张图像进行随机裁剪，并保存每张图像的裁剪参数
+        for idx in range(len(data) // 2):
+            img = data[idx]
+            transform = transforms.RandomResizedCrop(self.img_height, scale=self.scale, ratio=self.ratio)
+            i, j, h, w = transforms.RandomResizedCrop.get_params(img, self.scale, self.ratio)
+            params_list.append((i, j, h, w))
+            img = resized_crop(img, i, j, h, w, size=[self.img_height, self.img_height])
+            cropped_images.append(img)
+
+        # 使用相应的裁剪参数裁剪后25张图像
+        for idx in range(len(data) // 2):
+            img = data[len(data) // 2 + idx]
+            i, j, h, w = params_list[idx]
+            img = resized_crop(img, i, j, h, w, size=[self.img_height, self.img_height])
+            cropped_images.append(img)
+
+        return torch.stack(cropped_images)
 
 class SU(MIFGSM):
     """
@@ -46,7 +74,8 @@ class SU(MIFGSM):
         super().__init__(model_name, epsilon, alpha, epoch, decay, targeted, random_start, norm, loss, device, attack)
         self.start, self.interval = scale
         self.lamb = lamb
-        self.local_transform = RandomResizedCrop(img_height, scale=(self.start, self.start + self.interval))
+        # self.local_transform = RandomResizedCrop(img_height, scale=(self.start, self.start + self.interval))
+        self.local_transform = PairedRandomResizedCrop(img_height=img_height, scale=(self.start, self.start + self.interval))
         self.kernel = self.generate_kernel('gaussian', 5)
         self.resize_rate = 1.1
         self.diversity_prob = 0.7
@@ -135,15 +164,15 @@ class SU(MIFGSM):
         momentum = 0
         for _ in range(self.epoch):
             # Obtain the global and local input
-            # data_label = torch.cat((data, label), dim=0)
-            # data_label_li_inputs = self.local_transform(data_label)
-            # li_inputs = data_label_li_inputs[:batch_size]
-            # li_inputs_target = data_label_li_inputs[-batch_size:]
+            data_label = torch.cat((data, label), dim=0)
+            data_label_li_inputs = self.local_transform(data_label)
+            li_inputs = data_label_li_inputs[:batch_size]
+            li_inputs_target = data_label_li_inputs[-batch_size:]
 
-            li_inputs = self.local_transform(data)
+            # li_inputs = self.local_transform(data)
             accom_inputs = torch.concat([data + delta, li_inputs + delta], dim=0)
 
-            li_inputs_target = self.local_transform(label)
+            # li_inputs_target = self.local_transform(label)
             accom_inputs_target = torch.concat([label, li_inputs_target], dim=0)
             # accom_inputs_target = torch.concat([label+ delta, li_inputs_target+ delta], dim=0)
             # accom_inputs_target = torch.concat([label, label], dim=0)
