@@ -20,7 +20,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py  \
 ```bash
 CUDA_VISIBLE_DEVICES=0 CUDA_VISIBLE_DEVICES=0 python main.py  \
     --attack 'sasd_ws' \
-    --model 'resnet50' #clip model name \
+    --model 'resnet50' #resnet model name \
     --batch_size 40 \
     --eps 8/255 \
     --alpha 1.0/255 \
