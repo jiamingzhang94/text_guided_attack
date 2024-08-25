@@ -17,12 +17,13 @@ import torch.nn.functional as F
 def get_parser():
 
     parser = argparse.ArgumentParser(description='Generating transferable adversaria examples')
-    parser.add_argument('--attack', default='sasd_ws', type=str, help='the attack algorithm')
+    parser.add_argument('--attack', default='su', type=str, help='the attack algorithm')
     parser.add_argument('--batch_size', default=25, type=int, help='the bacth size')
-    parser.add_argument('--eps', default=16 / 255, type=float, help='the stepsize to update the perturbation')
-    parser.add_argument('--alpha', default=2.0 / 255, type=float, help='the stepsize to update the perturbation')
-    # parser.add_argument('--model', default='ViT-B/32', type=str, help='the source surrogate model')
-    parser.add_argument('--model', default='resnet50', type=str, help='the source surrogate model')
+    parser.add_argument('--eps', default=8 / 255, type=float, help='the stepsize to update the perturbation')
+    parser.add_argument('--alpha', default=1.0 / 255, type=float, help='the stepsize to update the perturbation')
+    parser.add_argument('--model', default='ViT-B/32', type=str, help='the source surrogate model')
+    # parser.add_argument('--model', default='resnet50', type=str, help='the source surrogate model')
+    parser.add_argument('--loss_type', default='cos', type=str)
     parser.add_argument('--clean_image_path', default="/new_data/yifei2/junhong/AttackVLM-main/data/imagenet-1K",
                         type=str,
                         help='the path for custom benign images, default: untargeted attack data')
@@ -35,6 +36,7 @@ def get_parser():
                         type=str,
                         help='the path to store the adversarial patches')
     parser.add_argument('--checkpoint_path', default='/new_data/yifei2/junhong/text_guide_attack/cache/hub/checkpoints', type=str, help='the size of the adversarial patch')
+
 
     parser.add_argument('-e', '--eval', action='store_true', help='attack/evluation')
     parser.add_argument('--epoch', default=10, type=int, help='the iterations for updating the adversarial patch')
@@ -69,9 +71,9 @@ def main():
     if args.ensemble or len(args.model.split(',')) > 1:
         args.model = args.model.split(',')
     if args.attack == 'su':
-        attacker = SU(model_name=args.model, loss='mse', epsilon=args.eps,alpha=args.alpha,targeted=True)
+        attacker = SU(model_name=args.model, loss=args.loss_type, epsilon=args.eps,alpha=args.alpha,targeted=True)
     elif args.attack == 'sasd_ws':
-        attacker = SASD_WS(model_name=args.model, loss='cos', epsilon=args.eps,alpha=args.alpha,targeted=True,checkpoint_path=args.checkpoint_path)
+        attacker = SASD_WS(model_name=args.model, loss=args.loss_type, epsilon=args.eps,alpha=args.alpha,targeted=True,checkpoint_path=args.checkpoint_path)
     else:
         raise Exception("Unsupported method {}".format(args.attack))
     # attacker = transferattack.load_attack_class(args.attack)(model_name=args.model, targeted=args.targeted)
