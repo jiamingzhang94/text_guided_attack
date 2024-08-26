@@ -48,10 +48,10 @@ def parse_args():
 
     parser.add_argument("--cfg_path", default="/new_data/yifei2/junhong/text_guide_attack/lavis_tool/blip/caption_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
-    parser.add_argument("--data_path",help="test data path")
-    # parser.add_argument("--data_path",
-    #                     default="/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test.json",
-    #                     help="test data path")
+    # parser.add_argument("--data_path",help="test data path")
+    parser.add_argument("--data_path",
+                        default="/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test_10.json",
+                        help="test data path")
     # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
     parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
                         help="path to image dataset")
@@ -362,7 +362,7 @@ def main():
         cfg.config['run']['output_dir'] = args.output_dir
     if args.data_path:
         dataset_name = list(cfg.config['datasets'].keys())[0]
-        cfg.config['datasets'][dataset_name]['build_info']['annotations']['test']['storage'] = args.data_path
+        cfg.config['datasets'][dataset_name]['build_info']['annotations']['val']['storage'] = args.data_path
 
     init_distributed_mode(cfg.run_cfg)
 
