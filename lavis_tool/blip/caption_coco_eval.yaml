@@ -33,7 +33,7 @@ run:
   output_dir: "output/BLIP/Caption_coco"
 
   evaluate: True
-  test_splits: ["val"]
+  test_splits: ["test"]
 
   device: "cuda"
   world_size: 1
