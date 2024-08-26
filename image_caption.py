@@ -362,7 +362,7 @@ def main():
         cfg.config['run']['output_dir'] = args.output_dir
     if args.data_path:
         dataset_name = list(cfg.config['datasets'].keys())[0]
-        cfg.config['datasets'][dataset_name]['build_info']['annotations']['val']['storage'] = args.data_path
+        cfg.config['datasets'][dataset_name]['build_info']['annotations']['test']['storage'] = args.data_path
 
     init_distributed_mode(cfg.run_cfg)
 
