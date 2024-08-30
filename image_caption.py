@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '4'
 os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
 import argparse
 import random
@@ -38,7 +38,8 @@ from lavis.processors.clip_processors import _convert_to_rgb
 import lavis.common.utils as utils
 import warnings
 from lavis.processors.randaugment import RandomAugment
-
+from lavis_tool.caption import CaptionTask
+# from lavis.tasks.captioning import CaptionTask
 
 # from lavis.processors.blip_processors import BlipCaptionProcessor
 
@@ -48,16 +49,14 @@ def parse_args():
 
     parser.add_argument("--cfg_path", default="/new_data/yifei2/junhong/text_guide_attack/lavis_tool/blip/caption_coco_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
-    # parser.add_argument("--data_path",help="test data path")
-    parser.add_argument("--data_path",
-                        default="/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test_10.json",
-                        help="test data path")
-    # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
+    parser.add_argument("--data_path", help="test data path")
+    parser.add_argument("--gt_path", default="/new_data/yifei2/junhong/dataset/coco_gt/test_4.json",
+                        help="path to groung truth")
     parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
                         help="path to image dataset")
-    # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
-    #                     help="path to image dataset")
     parser.add_argument("--output_dir", help="path where to save result")
+
+
     parser.add_argument(
         "--options",
         nargs="+",
@@ -65,7 +64,17 @@ def parse_args():
              "in xxx=yyy format will be merged into config file (deprecate), "
              "change to --cfg-options instead.",
     )
-
+    # parser.add_argument("--data_path",help="test data path")
+    # parser.add_argument("--data_path",
+    #                     default="/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test_10.json",
+    #                     help="test data path")
+    # parser.add_argument("--gt_path",default="/new_data/yifei2/junhong/dataset/coco_gt/test_4.json",help="path to groung truth")
+    # # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
+    # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
+    #                     help="path to image dataset")
+    # # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
+    # #                     help="path to image dataset")
+    # parser.add_argument("--output_dir", help="path where to save result")
     args = parser.parse_args()
     # if 'LOCAL_RANK' not in os.environ:
     #     os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -354,7 +363,7 @@ def main():
     job_id = now()
 
     cfg = Config(args)
-
+    registry.mapping["paths"]["coco_gt"]=""
     if args.image_path:
         cfg.config['datasets'][list(cfg.config['datasets'].keys())[0]]['build_info']['images'][
             'storage'] = args.image_path
@@ -363,7 +372,8 @@ def main():
     if args.data_path:
         dataset_name = list(cfg.config['datasets'].keys())[0]
         cfg.config['datasets'][dataset_name]['build_info']['annotations']['test']['storage'] = args.data_path
-
+    if args.gt_path:
+        registry.mapping["paths"]["coco_gt"]=args.gt_path
     init_distributed_mode(cfg.run_cfg)
 
     setup_seeds(cfg)
@@ -373,7 +383,8 @@ def main():
 
     cfg.pretty_print()
 
-    task = tasks.setup_task(cfg)
+    # task = tasks.setup_task(cfg)
+    task = CaptionTask.setup_task(cfg=cfg)
 
 
     # 自定义transform和dataset
