@@ -1,47 +1,27 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=5
-export TORCH_HOME=/home/dycpu6_8tssd1/jmzhang/.cache/
-#export TORCH_HOME=/new_data/yifei2/junhong/AttackVLM-main/model/blip-cache
-# custom config
+# 定义变量
+DATA="/home/dycpu6_8tssd1/jmzhang/datasets/"
+backbones=("vitb32" "vitb16" "vitl14")
+datasets=("coco_retrieval" "flickr30k")
+methods=("early" "later" "scratch")
+losses=("Con" "Cosine")
 
-#数据集路径
-DATA=/home/dycpu6_8tssd1/jmzhang/datasets/
-#DATA=/new_data/yifei2/junhong/dataset
+# 循环执行脚本
+for l in "${losses[@]}"; do
+    for m in "${methods[@]}"; do
+        for b in "${backbones[@]}"; do
+            for i in "${!datasets[@]}"; do
+                echo "---------------------------------------------------"
+                echo "Target model: ${b}"
+                echo "Dataset: ${datasets[$i]}, Image Path: outputs/${datasets[$i]}/${m}_${l}"
 
-#datasets=("coco" "flickr")
-datasets=("coco")
-#targets=("clip" "blip" "albef")
-targets=("albef")
-image_paths=("/home/dycpu6_8tssd1/jmzhang/datasets/mscoco"
-"/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images")
-json_paths=("/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/json/coco_karpathy_val_0.json"
-"/home/dycpu6_8tssd1/jmzhang/codes/text_guided_attack/outputs/adv_images.json")
-#image_paths=("/new_data/yifei2/junhong/dataset/new_coco/coco/images" "/new_data/yifei2/junhong/dataset/flickr30k/flickr30k-images")
-
-# 使用索引变量 i 遍历两个数组
-for t in "${targets[@]}"; do
-    for i in "${!datasets[@]}"; do
-        d=${datasets[$i]}
-        json_path=${json_paths[$i]}
-        image_path=${image_paths[$i]}
-        echo "Dataset: ${d}, Image Path: ${image_path}"
-        python retrieval.py \
-            --cache_path ${DATA} \
-            --cfg_path lavis_tool/${t}/ret_${d}_eval.yaml \
-            --image_path ${image_path} \
-            --json_path ${json_path}
-        echo "-------------------------------"
+                python retrieval.py \
+                    --cache_path ${DATA} \
+                    --cfg_path "lavis_tool/clip/ret_coco_retrieval_eval_${b}.yaml" \
+                    --image_path "outputs/${datasets[$i]}/${m}_${l}" \
+                    --json_path "outputs/${datasets[$i]}_${m}_${l}.json"
+            done
+        done
     done
 done
-
-#for t in "${targets[@]}"; do
-#    for d in "${datasets[@]}"; do
-#        python retrieval.py \
-#        --cache_path ${DATA} \
-#        --cfg_path ./lavis_tool/${t}/ret_${d}_eval.yaml \
-#        --image_path ${IMAGE_PATH}
-#    done
-#done
-#        --adv_training \
-#                 > logs/retrieval/eval.log 2>&1
