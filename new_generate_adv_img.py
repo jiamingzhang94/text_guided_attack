@@ -149,11 +149,11 @@ def compute_cosine_similarity(image_features, text_features):
     cosine_similarity = F.cosine_similarity(image_features, text_features, dim=1)
     return cosine_similarity
 
-def process_save_data(task_type, output_path,origin_path,result_data,dataset):
+def process_save_data(task_type, output_path,origin_path,result_data,dataset,adv_imgs):
     with open(origin_path,"r",encoding='utf-8') as f:
         origin_data=json.load(f)
     if task_type=='retrieval':
-        retrieval_path=os.path.join(output_path,f'{dataset}_adv.json')
+        retrieval_path=os.path.join(output_path,f'{dataset}_{adv_imgs}.json')
         with open(retrieval_path,"w",encoding='utf-8') as f:
             json.dump(result_data,f,ensure_ascii=False,indent=4)
 
@@ -161,12 +161,12 @@ def process_save_data(task_type, output_path,origin_path,result_data,dataset):
         for i,j in zip(origin_data,result_data):
             j["sentence"]=i["sentence"]
             j["label"]=i["label"]
-        ve_path=os.path.join(output_path,f'{dataset}_adv.json')
+        ve_path=os.path.join(output_path,f'{dataset}_{adv_imgs}.json')
         with open(ve_path,"w",encoding='utf-8') as f:
             json.dump(result_data,f,ensure_ascii=False,indent=4)
 
     elif task_type=='caption':
-        caption_path=os.path.join(output_path,f'{dataset}_adv.json')
+        caption_path=os.path.join(output_path,f'{dataset}_{adv_imgs}.json')
         caption_data=[]
         for i,j in zip(origin_data,result_data):
             i["image"]=j["image"]
@@ -301,4 +301,4 @@ if __name__ == '__main__':
     # torch.save(adv_tensor, pt_path)
     # with open(args.output_path + f"/{args.dataset}_adv.json", "w",encoding='utf-8')as f:
     #     json.dump(adv_data,f,indent=4,ensure_ascii=False)
-    process_save_data(args.task_type, args.output_path,args.target_caption,adv_data,args.dataset)
+    process_save_data(args.task_type, args.output_path,args.target_caption,adv_data,args.dataset,args.adv_imgs)
