@@ -153,7 +153,7 @@ def process_save_data(task_type, output_path,origin_path,result_data,dataset):
     with open(origin_path,"r",encoding='utf-8') as f:
         origin_data=json.load(f)
     if task_type=='retrieval':
-        retrieval_path=os.path.join(output_path,f'{dataset}.json')
+        retrieval_path=os.path.join(output_path,f'{dataset}_adv.json')
         with open(retrieval_path,"w",encoding='utf-8') as f:
             json.dump(result_data,f,ensure_ascii=False,indent=4)
 
@@ -161,12 +161,12 @@ def process_save_data(task_type, output_path,origin_path,result_data,dataset):
         for i,j in zip(origin_data,result_data):
             j["sentence"]=i["sentence"]
             j["label"]=i["label"]
-        ve_path=os.path.join(output_path,f'{dataset}.json')
+        ve_path=os.path.join(output_path,f'{dataset}_adv.json')
         with open(ve_path,"w",encoding='utf-8') as f:
             json.dump(result_data,f,ensure_ascii=False,indent=4)
 
     elif task_type=='caption':
-        caption_path=os.path.join(output_path,f'{dataset}.json')
+        caption_path=os.path.join(output_path,f'{dataset}_adv.json')
         caption_data=[]
         for i,j in zip(origin_data,result_data):
             i["image"]=j["image"]
