@@ -40,6 +40,93 @@ class ImprovedContrastiveLoss(nn.Module):
         return loss, avg_similarity
 
 criterion = ImprovedContrastiveLoss()
+
+class ImageTextDataset(Dataset):
+    def __init__(self, it_pair_path, image_path, image_only, task_type,is_nocap=False,transform=None):
+        with open(it_pair_path, 'r', encoding='utf-8') as f:
+            self.it_pair = json.load(f)
+        self.transform = transform
+        self.image_path = image_path
+        self.image_only = image_only
+        self.task_type = task_type
+        # keys = list(self.it_pair[0].keys())
+        self.is_nocap=is_nocap
+        # if 'caption' or 'sentence' not in keys:
+        #     self.is_nocap=True
+
+    def __len__(self):
+        return len(self.it_pair)
+
+    def __getitem__(self, idx):
+
+        if self.task_type == "retrieval":
+            sample = self.it_pair[idx]
+            # 加载图像
+            if self.image_only:
+                image_path = os.path.join(self.image_path, sample['image'])
+                # image = Image.open(image_path).convert('RGB')
+                image = Image.open(image_path).convert('RGB')
+                # 应用转换
+                if self.transform:
+                    image = self.transform(image)
+                text = sample['caption'][0]
+                return image, text
+            else:
+                image = sample['image']
+                text = sample['caption'][0]
+                return image, text
+
+        elif self.task_type == "ve":
+            sample = self.it_pair[idx]
+            if self.image_only:
+                if sample['image'].endswith(".jpg"):
+                    image_path = os.path.join(self.image_path, sample['image'])
+                else:
+                    image_path = os.path.join(self.image_path, f"{sample['image']}.jpg")
+                # image = Image.open(image_path).convert('RGB')
+                image = Image.open(image_path).convert('RGB')
+                # 应用转换
+                if self.transform:
+                    image = self.transform(image)
+                text = sample['sentence']
+                return image, text
+            else:
+                image = sample['image']
+                text = sample['sentence']
+                return image, text
+
+        elif self.task_type == "caption":
+            sample = self.it_pair[idx]
+            # 加载图像
+            if self.is_nocap:
+                if self.image_only:
+                    image_path = os.path.join(self.image_path, sample['image'])
+                    # image = Image.open(image_path).convert('RGB')
+                    image = Image.open(image_path).convert('RGB')
+                    # 应用转换
+                    if self.transform:
+                        image = self.transform(image)
+                    text = "no caption"
+                    return image, text
+                else:
+                    # image = sample['image']
+                    # text = "no caption"
+                    # return image, text
+                    raise Exception("nocap dataset don't has caption,please set image_only to True")
+            else:
+                if self.image_only:
+                    image_path = os.path.join(self.image_path, sample['image'])
+                    # image = Image.open(image_path).convert('RGB')
+                    image = Image.open(image_path).convert('RGB')
+                    # 应用转换
+                    if self.transform:
+                        image = self.transform(image)
+                    text = sample['caption'][0]
+                    return image, text
+                else:
+                    image = sample['image']
+                    text = sample['caption'][0]
+                    return image, text
 # class ImageFolderWithPaths(torchvision.datasets.ImageFolder):
 #     def __getitem__(self, index: int):
 #         original_tuple = super().__getitem__(index)  # (img, label)
