@@ -18,6 +18,7 @@ for l in losses:
                 f"--cache_path {DATA} "
                 f"--image_path outputs/{datasets[i]}/{m}_{l} "
                 f"--json_path outputs/{datasets[i]}_{m}_{l}.json "
+                f"--gt_path /YOUR/GROUND/TRUTH/PATH" # ground_truth.json的路径
             )
             if datasets[i] == "coco_caption":
                 command+=f" --cfg_path lavis_tool/blip/caption_coco_eval.yaml "#没有需要更换的backbone
