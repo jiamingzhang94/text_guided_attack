@@ -1,7 +1,8 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '4'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
+# os.environ["HF_HOME"] = '/new_data/yifei2/junhong/text_guide_attack/cache'
 import argparse
 import random
 import re
@@ -38,6 +39,7 @@ from lavis.processors.clip_processors import _convert_to_rgb
 import lavis.common.utils as utils
 import warnings
 from lavis.processors.randaugment import RandomAugment
+from lavis.datasets.datasets.coco_caption_datasets import NoCapsEvalDataset
 from lavis_tool.caption import CaptionTask
 # from lavis.tasks.captioning import CaptionTask
 
@@ -47,12 +49,12 @@ from lavis_tool.caption import CaptionTask
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
-    parser.add_argument("--cfg_path", default="/new_data/yifei2/junhong/text_guide_attack/lavis_tool/blip/caption_coco_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cfg_path", default="/new_data/yifei2/junhong/text_guide_attack/lavis_tool/blip/caption_nocaps_eval.yaml", help="path to configuration file.")
     parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
-    parser.add_argument("--data_path", help="test data path")
-    parser.add_argument("--gt_path", default="/new_data/yifei2/junhong/dataset/coco_gt/test_4.json",
-                        help="path to groung truth")
-    parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
+    parser.add_argument("--data_path", default="/new_data/yifei2/junhong/dataset/nocaps/annotations/nocaps_test_8.json",help="test data path")
+    parser.add_argument("--gt_path",help="path to groung truth")
+    # default = "/new_data/yifei2/junhong/dataset/coco_gt/test_4.json",
+    parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/nocaps/images",
                         help="path to image dataset")
     parser.add_argument("--output_dir", help="path where to save result")
 
@@ -64,13 +66,15 @@ def parse_args():
              "in xxx=yyy format will be merged into config file (deprecate), "
              "change to --cfg-options instead.",
     )
-    # parser.add_argument("--data_path",help="test data path")
+    # parser.add_argument("--cfg_path", default="/new_data/yifei2/junhong/text_guide_attack/lavis_tool/blip/caption_coco_eval.yaml", help="path to configuration file.")
+    # parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
+    # # parser.add_argument("--data_path",help="test data path")
     # parser.add_argument("--data_path",
-    #                     default="/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test_10.json",
+    #                     default="/new_data/yifei2/junhong/text_guide_attack/saved_result/SU/test_png.json",
     #                     help="test data path")
     # parser.add_argument("--gt_path",default="/new_data/yifei2/junhong/dataset/coco_gt/test_4.json",help="path to groung truth")
     # # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
-    # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
+    # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/text_guide_attack/saved_result/SU/adv_images",
     #                     help="path to image dataset")
     # # parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images",
     # #                     help="path to image dataset")
@@ -340,7 +344,10 @@ def build(cfg, transform=None):
             warnings.warn("storage path {} does not exist.".format(vis_path))
 
         # create datasets
-        dataset_cls = CaptionDataset if is_train else COCOCapEvalDataset
+        if retrieval_datasets_keys[0]=="nocaps":
+            dataset_cls = NoCapsEvalDataset
+        else:
+            dataset_cls = CaptionDataset if is_train else COCOCapEvalDataset
         datasets[split] = dataset_cls(
             vis_processor=vis_processor,
             text_processor=text_processor,
@@ -382,9 +389,10 @@ def main():
     setup_logger()
 
     cfg.pretty_print()
-
-    # task = tasks.setup_task(cfg)
-    task = CaptionTask.setup_task(cfg=cfg)
+    if cfg.config['datasets']=="nocaps":
+        task = tasks.setup_task(cfg)
+    else:
+        task = CaptionTask.setup_task(cfg=cfg)
 
 
     # 自定义transform和dataset
