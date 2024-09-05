@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
             # 检查预测是否正确
             if preds == labels.item():
-                relative_path = '/'.join(image_path[0].split('/')[-3:])
+                relative_path = '/'.join(image_path[0].split('/')[-2:])
                 correct_images[labels.item()] = {
                     'file_name': relative_path,
                     'label': labels.item(),
