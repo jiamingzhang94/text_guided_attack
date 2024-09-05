@@ -103,7 +103,7 @@ if __name__ == '__main__':
             # 如果所有类别都已找到，则停止遍历
             if len(correct_images) == len(imagenet_data.classes):
                 break
-            break
+            # break
     # 将结果保存为 JSON 文件
     output_file = args.save_path
     with open(output_file, "w",encoding='utf-8') as f:
