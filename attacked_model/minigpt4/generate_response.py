@@ -144,7 +144,7 @@ if __name__ == "__main__":
                                 --llama_model_path '/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf'
     '''
     '''
-    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigptv2_eval.yaml' \
+    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigpt4v2_llama2_eval.yaml' \
                                 --data_path '/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json' \
                                 --image_path '/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images' \
                                 --gt_path '/mnt/sdc1/junhong/proj/dataset/coco_gt/coco' \
