@@ -4,9 +4,9 @@ model:
   max_txt_len: 160
   end_sym: "###"
   low_resource: True
-  llama_model: '/new_data/ModewareHouse/minigpt4-vicuna-7b'
+  llama_model: '/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf'
   prompt_template: '###Human: {} ###Assistant:'
-  ckpt: "/new_data/yifei2/junhong/text_guide_attack/cache/prerained_minigpt4_7b.pth"
+  ckpt: "/mnt/sdc1/junhong/proj/text_guide_attack/cache/prerained_minigpt4_7b.pth"
 
 
 datasets:

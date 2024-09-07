@@ -1,7 +1,7 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ['TORCH_HOME'] = '/mnt/sdc1/junhong/proj/text_guide_attack/cache'
 import random
 
 import numpy as np
@@ -9,15 +9,13 @@ import torch
 import torch.backends.cudnn as cudnn
 import json
 # import gradio as gr
-import torchvision
 from PIL import Image
 from transformers import StoppingCriteriaList
 from minigpt4.common.config import Config
-from minigpt4.common.dist_utils import get_rank
 from minigpt4.common.registry import registry
 
-from minigpt4.conversation.conversation import Chat, CONV_VISION_Vicuna0, CONV_VISION_LLama2, StoppingCriteriaSub
-from eval import eval_caption
+from minigpt4.conversation.conversation import Chat, CONV_VISION_Vicuna0, CONV_VISION_LLama2, StoppingCriteriaSub,Conversation, SeparatorStyle
+from attacked_model.minigpt4.eval import eval_caption
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 DEFAULT_IMAGE_TOKEN = "<image>"
@@ -48,11 +46,11 @@ def to_tensor(pic):
     img = img.permute((2, 0, 1)).contiguous()
     return img.to(dtype=torch.get_default_dtype())
 
-def initialize_model(args):
+def initialize_model(cfg):
     # ========================================
     #             Model Initialization
     # ========================================
-    cfg = Config(args)
+    # cfg = Config(args)
 
     # setup_seeds(cfg)
     setup_seeds_another(42)
@@ -63,7 +61,17 @@ def initialize_model(args):
     model_cls = registry.get_model_class(model_config.arch)
     # model = model_cls.from_config(model_config).to('cuda:{}'.format(args.gpu_id))
     model = model_cls.from_config(model_config).to(device)
-    CONV_VISION = conv_dict[model_config.model_type]
+    if cfg.model_cfg.arch=='minigpt_v2':
+        CONV_VISION = Conversation(
+            system="",
+            roles=(r"<s>[INST] ", r" [/INST]"),
+            messages=[],
+            offset=2,
+            sep_style=SeparatorStyle.SINGLE,
+            sep="",
+        )
+    else:
+        CONV_VISION = conv_dict[model_config.model_type]
 
     vis_processor_cfg = cfg.datasets_cfg.cc_sbu_align.vis_processor.train
     vis_processor = registry.get_processor_class(vis_processor_cfg.name).from_config(vis_processor_cfg)
@@ -110,13 +118,14 @@ if __name__ == "__main__":
     # minigpt-4
     parser.add_argument("--cfg-path", default="minigpt4_eval.yaml", help="path to configuration file.")
     # parser.add_argument("--gpu_id", type=int, default=0, help="specify the gpu to load the model.")
-    parser.add_argument("--data_path", default="coco_karpathy_test.json", type=str)
-    parser.add_argument("--image_path", default="/new_data/yifei2/junhong/dataset/ms_coco/coco/images", type=str)
-    parser.add_argument("--gt_path", default="/new_data/yifei2/junhong/dataset/coco_gt/coco_karpathy_test_gt.json",
+    parser.add_argument("--data_path", default="/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json", type=str)
+    parser.add_argument("--image_path", default="/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images", type=str)
+    parser.add_argument("--gt_path", default="/mnt/sdc1/junhong/proj/dataset/coco_gt/coco_karpathy_test_gt.json",
                         help="path to the ground truth file.")
-    parser.add_argument("--llama_model_path",help="path to the llama model.")
+    parser.add_argument("--llama_model_path",default='/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf',help="path to the llama model.")
     parser.add_argument("--ckpt_path",help="path to the adapter path")
-    parser.add_argument("--output_path", default="minigpt_temp.json", type=str, help='the folder name that restore your outputs')
+    parser.add_argument("--output_path", default="Describe this image in detail.json", type=str, help='the folder name that restore your outputs')
+    parser.add_argument("--prompt",default="Describe this image in one sentence",type=str)
     parser.add_argument(
         "--options",
         nargs="+",
@@ -125,7 +134,25 @@ if __name__ == "__main__":
              "change to --cfg-options instead.",
     )
     args = parser.parse_args()
-
+    '''
+    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigpt4_llama2_eval.yaml' \
+                                --data_path '/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json' \
+                                --image_path '/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images' \
+                                --gt_path '/mnt/sdc1/junhong/proj/dataset/coco_gt/coco' \
+                                --output_path 'Describe this image in one sentence_llama2_v1.json' \
+                                --prompt "Describe this image in one sentence." \
+                                --llama_model_path '/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf'
+    '''
+    '''
+    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigptv2_eval.yaml' \
+                                --data_path '/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json' \
+                                --image_path '/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images' \
+                                --gt_path '/mnt/sdc1/junhong/proj/dataset/coco_gt/coco' \
+                                --output_path 'Describe this image in one sentence_v2.json' \
+                                --prompt "Describe this image in one sentence." \
+                                --llama_model_path '/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf'                       
+    '''
+    print("output_path:", args.output_path)
     print(f"Loading MiniGPT-4 models..")
     cfg = Config(args)
     if args.llama_model_path:
@@ -133,16 +160,19 @@ if __name__ == "__main__":
     if args.ckpt_path:
         cfg.config["model"]["ckpt"]=args.ckpt_path
 
-    chat, CONV_VISION=initialize_model(args)
+    chat, CONV_VISION=initialize_model(cfg)
     print(f"Done")
 
-    with open("/new_data/yifei2/junhong/dataset/coco/annotations/coco_karpathy_test.json","r",encoding="utf-8") as f:
+    with open(args.data_path,"r",encoding="utf-8") as f:
         data = json.load(f)
     images_path = args.image_path
     result = []
-    for idx,i in enumerate(data):
+    for idx,i in enumerate(data[:1000]):
         image_path=os.path.join(images_path,i["image"])
-        caption = chat_with_image_path_and_question(chat, CONV_VISION, image_path, "Describe this image in one sentence")
+        # caption = chat_with_image_path_and_question(chat, CONV_VISION, image_path, "Describe this image in one sentence")
+        # Describe this image in detail.
+        # caption = chat_with_image_path_and_question(chat, CONV_VISION, image_path,"Describe this image in detail.")
+        caption = chat_with_image_path_and_question(chat, CONV_VISION, image_path, args.prompt)
         image_id = int(i["image"].split("_")[-1].split(".jpg")[0])
         result.append(
             {
@@ -153,8 +183,8 @@ if __name__ == "__main__":
         print(idx,"-"*100)
         # print(caption)
         # break
-    with open(args.output_path,"w",encoding='utf-8') as f:
-        json.dump(result,f,ensure_ascii=False,indent=4)
+        with open(args.output_path,"w",encoding='utf-8') as f:
+            json.dump(result,f,ensure_ascii=False,indent=4)
 
     eval_caption(args.gt_path,args.output_path)
 

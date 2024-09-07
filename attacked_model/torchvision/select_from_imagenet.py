@@ -92,9 +92,9 @@ if __name__ == '__main__':
             if preds == labels.item():
                 relative_path = '/'.join(image_path[0].split('/')[-2:])
                 correct_images[labels.item()] = {
-                    'file_name': relative_path,
+                    'image': relative_path,
                     'label': labels.item(),
-                    'predicted_label': preds
+                    'caption':[ f""]
                 }
                 found_classes.add(labels.item())  # 记录已经找到的类别
                 num+=1

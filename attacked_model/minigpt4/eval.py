@@ -1,12 +1,24 @@
+import os
+import sys
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
-import os
+import pycocoevalcap.spice as spice
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
+
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+os.environ['TORCH_HOME'] = '/mnt/sdc1/junhong/proj/text_guide_attack/cache'
+# os.environ['SPICE_CACHE'] = '/new_data/yifei2/anaconda3/envs/lavis/lib/python3.8/site-packages/pycocoevalcap/spice'
 import argparse
 
 def eval_caption(gt_path,result_path):
+    # print(sys.path)
+    # for path in sys.path:
+    #     package_path = os.path.join(path, 'pycocoevalcap')
+    #     if os.path.exists(package_path):
+    #         raise FileNotFoundError(f'pycocoevalcap was not installed')
+    #
+    # spice.SPICE_JAR=os.path.join(package_path,'spice')
+    # print(spice.SPICE_JAR)
     coco = COCO(gt_path)
     coco_result = coco.loadRes(result_path)
 
@@ -28,12 +40,16 @@ def eval_caption(gt_path,result_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # minigpt-4
-    parser.add_argument("--result_path", default="/new_data/yifei2/junhong/text_guide_attack/output/BLIP/Caption_coco"
-                                                 "/20240824203/test_epochbest.json", help="path to model caption "
-                                                                                          "result file.")
+    # parser.add_argument("--result_path", default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/minigpt4/minigpt_temp.json", help="path to model caption "
+    #                                                                                       "result file.")
+    parser.add_argument("--result_path",
+                        default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/minigpt4/minigpt_temp.json",
+                        help="path to model caption "
+                             "result file.")
+    # /new_data/yifei2/junhong/text_guide_attack/output/BLIP/Caption_coco/20240824203/test_epochbest.json
     parser.add_argument("--gt_path", default="/new_data/yifei2/junhong/dataset/coco_gt/coco_karpathy_test_gt.json", help="path to the ground truth file.")
     args = parser.parse_args()
-
+    # print(sys.path)
     eval_caption(args.gt_path,args.result_path)
     # coco = COCO(args.gt_path)
     # coco_result = coco.loadRes(args.result_path)
