@@ -1,5 +1,5 @@
 model:
-  arch: minigpt4
+  arch: MiniGPT4
   model_type: pretrain_llama2
   max_txt_len: 160
   end_sym: "</s>"

@@ -40,10 +40,10 @@ def eval_caption(gt_path,result_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # minigpt-4
-    # parser.add_argument("--result_path", default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/minigpt4/minigpt_temp.json", help="path to model caption "
+    # parser.add_argument("--result_path", default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/MiniGPT4/minigpt_temp.json", help="path to model caption "
     #                                                                                       "result file.")
     parser.add_argument("--result_path",
-                        default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/minigpt4/minigpt_temp.json",
+                        default="/new_data/yifei2/junhong/text_guide_attack/compared_methods/MiniGPT4/minigpt_temp.json",
                         help="path to model caption "
                              "result file.")
     # /new_data/yifei2/junhong/text_guide_attack/output/BLIP/Caption_coco/20240824203/test_epochbest.json

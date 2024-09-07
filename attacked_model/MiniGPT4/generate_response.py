@@ -15,7 +15,7 @@ from minigpt4.common.config import Config
 from minigpt4.common.registry import registry
 
 from minigpt4.conversation.conversation import Chat, CONV_VISION_Vicuna0, CONV_VISION_LLama2, StoppingCriteriaSub,Conversation, SeparatorStyle
-from attacked_model.minigpt4.eval import eval_caption
+from attacked_model.MiniGPT4.eval import eval_caption
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 DEFAULT_IMAGE_TOKEN = "<image>"
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     '''
-    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigpt4_llama2_eval.yaml' \
+    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/MiniGPT4/minigpt4_llama2_eval.yaml' \
                                 --data_path '/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json' \
                                 --image_path '/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images' \
                                 --gt_path '/mnt/sdc1/junhong/proj/dataset/coco_gt/coco' \
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                                 --llama_model_path '/mnt/sdc1/ModelWarehouse/Llama-2-7b-chat-hf'
     '''
     '''
-    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/minigpt4/minigpt4v2_llama2_eval.yaml' \
+    CUDA_VISIBLE_DEVICES=0 python generate_response.py --cfg-path '/mnt/sdc1/junhong/proj/text_guide_attack/compared_methods/MiniGPT4/minigpt4v2_llama2_eval.yaml' \
                                 --data_path '/mnt/sdc1/junhong/proj/dataset/coco/annotations/coco_karpathy_test.json' \
                                 --image_path '/mnt/sdc1/junhong/proj/dataset/ms_coco/coco/images' \
                                 --gt_path '/mnt/sdc1/junhong/proj/dataset/coco_gt/coco' \
