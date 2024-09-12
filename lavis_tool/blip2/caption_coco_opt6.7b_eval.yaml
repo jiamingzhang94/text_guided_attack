@@ -16,7 +16,7 @@ model:
   arch: blip2_opt
   model_type: caption_coco_opt6.7b
   use_grad_checkpoint: False
-  opt_model: "facebook/opt-6.7b"
+#  opt_model: "/new_data/yifei2/junhong/text_guide_attack/cache/hub/opt-6.7b"
 
 datasets:
   coco_caption: # name of the dataset builder
