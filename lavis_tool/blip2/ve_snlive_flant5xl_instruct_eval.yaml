@@ -83,7 +83,7 @@ run:
 
   evaluate: True
   # train_splits: ["train"]
-  test_splits: ["val"]
+  test_splits: ["test"]
 
 
   device: "cuda"
