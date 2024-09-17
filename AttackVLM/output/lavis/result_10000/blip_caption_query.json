@@ -1,0 +1,14 @@
+[
+    {
+        "moving-avg-adv-rn50": 0.94873046875,
+        "moving-avg-query-rn50": 0.94873046875,
+        "moving-avg-adv-rn101": 0.921875,
+        "moving-avg-query-rn101": 0.93359375,
+        "moving-avg-adv-vitb16": 0.9189453125,
+        "moving-avg-query-vitb16": 0.9189453125,
+        "moving-avg-adv-vitb32": 0.93359375,
+        "moving-avg-query-vitb32": 0.9482421875,
+        "moving-avg-adv-vitl14": 0.830078125,
+        "moving-avg-query-vitl14": 0.83935546875
+    }
+]
