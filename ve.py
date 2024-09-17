@@ -1,7 +1,8 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '7'
-os.environ['TORCH_HOME'] = '/new_data/yifei2/junhong/text_guide_attack/cache'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ['TORCH_HOME'] = '/mnt/sdc1/junhong/proj/text_guide_attack/cache'
+os.environ["HF_HOME"] = '/mnt/sdc1/junhong/proj/text_guide_attack/cache'
 import argparse
 import random
 import re
@@ -42,18 +43,20 @@ from lavis.processors.clip_processors import _convert_to_rgb
 import lavis.common.utils as utils
 import warnings
 from lavis.processors.randaugment import RandomAugment
+from lavis_tool.multimodal_classification import MultimodalClassificationTask
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")
-
-    parser.add_argument("--cfg_path", default="lavis_tool/albef/ve_snli_eval.yaml", help="path to configuration file.")
-    parser.add_argument("--cache_path", default="/new_data/yifei2/junhong/dataset", help="path to dataset cache")
+    # /mnt/sdc1/junhong/proj/text_guide_attack/lavis_tool/albef/ve_snli_eval.yaml
+    # /mnt/sdc1/junhong/proj/text_guide_attack/lavis_tool/blip2/ve_snlive_flant5xl_instruct_eval.yaml
+    parser.add_argument("--cfg_path", default="/mnt/sdc1/junhong/proj/text_guide_attack/lavis_tool/blip2/ve_snlive_flant5xxl_instruct_eval.yaml", help="path to configuration file.")
+    parser.add_argument("--cache_path", default="/mnt/sdc1/junhong/proj/dataset", help="path to dataset cache")
     parser.add_argument("--data_path",
-                        default='/new_data/yifei2/junhong/dataset/snli/annotations/_ve_test_adv_2000_.json',
+                        default='/mnt/sdc1/junhong/proj/dataset/snli/annotations/ve_test_64.json',
                         help="test data path")
     # parser.add_argument("--image_path", default='/home/dycpu6_8tssd1/jmzhang/datasets/mscoco',help="path to image dataset")
-    parser.add_argument("--image_path",
+    parser.add_argument("--image_path",default="/mnt/sdc1/junhong/proj/dataset/flickr30k/flickr30k-images",
                         help="path to image dataset")
     parser.add_argument("--output_dir", help="path where to save result")
     parser.add_argument(
@@ -196,7 +199,19 @@ class SNLIVisualEntialmentDataset(MultimodalClassificationDataset, __DisplMixin)
             "instance_id": ann["instance_id"],
         }
 
-
+class SNLIVisualEntialmentInstructDataset(SNLIVisualEntialmentDataset, __DisplMixin):
+    def __init__(self, vis_processor, text_processor, vis_root, ann_paths):
+        super().__init__(vis_processor, text_processor, vis_root, ann_paths)
+        self.classnames = ['no', 'maybe', 'yes']
+        self.instruct_class_label={"no": 0, "maybe": 1, "yes": 2}
+    def __getitem__(self, index):
+        data = super().__getitem__(index)
+        if data != None:
+            data["prompt"] = self.text_processor("based on the given the image is {} true?")
+            data["answer"] = data["label"]
+            data["label"] = data["label"]
+            data["question_id"] = data["instance_id"]
+        return data
 def build(cfg, transform=None):
     """
     Create by split datasets inheriting torch.utils.data.Datasets.
@@ -207,7 +222,7 @@ def build(cfg, transform=None):
         image_size = cfg.config['preprocess']['vis_processor']['eval']['image_size']
     except:
         image_size = 384
-
+    is_instruct = True if "instruct" in cfg.config.model.arch else False
     config = cfg.config['datasets']
     # self.build_processors()
     text_processor_dict = {'name': 'blip_caption'}
@@ -265,7 +280,7 @@ def build(cfg, transform=None):
             warnings.warn("storage path {} does not exist.".format(vis_path))
 
         # create datasets
-        dataset_cls = SNLIVisualEntialmentDataset
+        dataset_cls =SNLIVisualEntialmentInstructDataset if is_instruct else SNLIVisualEntialmentDataset
         datasets[split] = dataset_cls(
             vis_processor=vis_processor,
             text_processor=text_processor,
@@ -317,8 +332,8 @@ def main():
 
     cfg.pretty_print()
 
-    task = tasks.setup_task(cfg)
-
+    # task = tasks.setup_task(cfg)
+    task = MultimodalClassificationTask.setup_task(cfg=cfg)
     # 自定义transform和dataset
     try:
         image_size = cfg.config['preprocess']['vis_processor']['eval']['image_size']
@@ -334,6 +349,7 @@ def main():
         ]
     )
     datasets = build(cfg, transform=transform)
+    # datasets = build(cfg, transform=None)
     # datasets = task.build_datasets(cfg)
 
     model = task.build_model(cfg)
@@ -345,7 +361,7 @@ def main():
     # 默认的保存路径为registry.get_path("library_root")+output_dir/evaluate.txt 此处修改为配置文件中路径
     output_dir = os.path.join(cfg.run_cfg["output_dir"], job_id)
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        os.makedirs(output_dir,exist_ok=True)
     registry.mapping["paths"]["output_dir"] = output_dir
     registry.mapping["paths"]["result_dir"] = output_dir
 
